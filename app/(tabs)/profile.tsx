@@ -209,7 +209,12 @@ export default function ProfileScreen() {
                     <View style={[styles.petChipAvatar, isActive && styles.petChipAvatarActive]}>
                       {p.avatar_uri
                         ? <Image source={{ uri: p.avatar_uri }} style={styles.petChipImage} />
-                        : <Text style={{ fontSize: 20 }}>{p.species === '고양이' ? '🐱' : '🐶'}</Text>
+                        : <Image
+                            source={p.species === '고양이'
+                              ? require('../../assets/default-cat.png')
+                              : require('../../assets/default-dog.png')}
+                            style={styles.petChipImage}
+                          />
                       }
                     </View>
                     <Text style={[styles.petChipName, isActive && styles.petChipNameActive]} numberOfLines={1}>
@@ -235,7 +240,12 @@ export default function ProfileScreen() {
               <TouchableOpacity style={styles.avatarWrapper} onPress={pickAvatar}>
                 {displayPet.avatar_uri
                   ? <Image source={{ uri: displayPet.avatar_uri }} style={styles.avatarImage} />
-                  : <View style={styles.avatarPlaceholder}><Text style={{ fontSize: 52 }}>{displayPet.species === '고양이' ? '🐱' : '🐶'}</Text></View>
+                  : <Image
+                      source={displayPet.species === '고양이'
+                        ? require('../../assets/default-cat.png')
+                        : require('../../assets/default-dog.png')}
+                      style={styles.avatarImage}
+                    />
                 }
                 <View style={styles.cameraIcon}><Text style={{ fontSize: 14 }}>📷</Text></View>
               </TouchableOpacity>
@@ -243,7 +253,12 @@ export default function ProfileScreen() {
               <View style={styles.avatarWrapper}>
                 {displayPet.avatar_uri
                   ? <Image source={{ uri: displayPet.avatar_uri }} style={styles.avatarImage} />
-                  : <View style={styles.avatarPlaceholder}><Text style={{ fontSize: 52 }}>{displayPet.species === '고양이' ? '🐱' : '🐶'}</Text></View>
+                  : <Image
+                      source={displayPet.species === '고양이'
+                        ? require('../../assets/default-cat.png')
+                        : require('../../assets/default-dog.png')}
+                      style={styles.avatarImage}
+                    />
                 }
               </View>
             )}

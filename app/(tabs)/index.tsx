@@ -71,7 +71,12 @@ export default function HomeScreen() {
           <View style={styles.petAvatar}>
             {pet.avatar_uri
               ? <Image source={{ uri: pet.avatar_uri }} style={styles.petAvatarImage} />
-              : <Text style={{ fontSize: 40 }}>{pet.species === '고양이' ? '🐱' : '🐶'}</Text>
+              : <Image
+                  source={pet.species === '고양이'
+                    ? require('../../assets/default-cat.png')
+                    : require('../../assets/default-dog.png')}
+                  style={styles.petAvatarImage}
+                />
             }
           </View>
           <View style={styles.petInfo}>
@@ -209,7 +214,7 @@ const styles = StyleSheet.create({
     width: 64, height: 64, borderRadius: 32,
     backgroundColor: '#EEF2FF', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
   },
-  petAvatarImage: { width: 64, height: 64, borderRadius: 32 },
+  petAvatarImage: { width: 64, height: 64, borderRadius: 32, resizeMode: 'cover' },
   petInfo: { flex: 1 },
   petName: { fontSize: 20, fontWeight: '700', color: '#111827' },
   petSub: { fontSize: 13, color: '#6B7280', marginTop: 2 },

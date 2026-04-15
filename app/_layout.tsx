@@ -9,7 +9,7 @@ export default function RootLayout() {
     <PetProvider>
       <DiaryProvider>
         <Head>
-          <title>참참헬스</title>
+          <title>TwinTuna_Paws</title>
         </Head>
         <StatusBar style="dark" />
         <Stack screenOptions={{ headerShown: false }} />

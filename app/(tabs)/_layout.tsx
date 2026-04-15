@@ -32,7 +32,7 @@ export default function TabLayout() {
         name="index"
         options={{
           title: '홈',
-          headerTitle: '참참헬스',
+          headerTitle: 'TwinTuna_Paws',
           tabBarIcon: ({ focused }) => <TabIcon emoji="🏠" focused={focused} />,
         }}
       />
