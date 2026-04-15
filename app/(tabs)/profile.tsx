@@ -416,7 +416,7 @@ const styles = StyleSheet.create({
     borderWidth: 2, borderColor: 'transparent',
   },
   petChipAvatarActive: { borderColor: '#1A73E8' },
-  petChipImage: { width: 54, height: 54, borderRadius: 27 },
+  petChipImage: { width: 40, height: 40, borderRadius: 20, resizeMode: 'cover' },
   petChipName: { fontSize: 11, color: '#9CA3AF', maxWidth: 60 },
   petChipNameActive: { color: '#1A73E8', fontWeight: '700' },
   addPetBtn: { alignItems: 'center', gap: 4, width: 54 },
@@ -429,12 +429,16 @@ const styles = StyleSheet.create({
     alignItems: 'center', gap: 6, marginBottom: 4,
     shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 10, elevation: 3,
   },
-  avatarWrapper: { marginBottom: 4, position: 'relative' },
+  avatarWrapper: {
+    marginBottom: 4, position: 'relative',
+    width: 100, height: 100, borderRadius: 50,
+    backgroundColor: '#EEF2FF', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
+  },
   avatarPlaceholder: {
-    width: 90, height: 90, borderRadius: 45,
+    width: 100, height: 100, borderRadius: 50,
     backgroundColor: '#EEF2FF', alignItems: 'center', justifyContent: 'center',
   },
-  avatarImage: { width: 90, height: 90, borderRadius: 45 },
+  avatarImage: { width: 74, height: 74, borderRadius: 37, resizeMode: 'cover' },
   cameraIcon: {
     position: 'absolute', bottom: 0, right: 0,
     width: 28, height: 28, borderRadius: 14,

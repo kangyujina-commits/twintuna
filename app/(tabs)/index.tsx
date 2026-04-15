@@ -214,7 +214,7 @@ const styles = StyleSheet.create({
     width: 64, height: 64, borderRadius: 32,
     backgroundColor: '#EEF2FF', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
   },
-  petAvatarImage: { width: 64, height: 64, borderRadius: 32, resizeMode: 'cover' },
+  petAvatarImage: { width: 48, height: 48, borderRadius: 24, resizeMode: 'cover' },
   petInfo: { flex: 1 },
   petName: { fontSize: 20, fontWeight: '700', color: '#111827' },
   petSub: { fontSize: 13, color: '#6B7280', marginTop: 2 },
