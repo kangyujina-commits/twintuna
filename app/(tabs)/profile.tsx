@@ -213,7 +213,7 @@ export default function ProfileScreen() {
                             source={p.species === '고양이'
                               ? require('../../assets/default-cat.png')
                               : require('../../assets/default-dog.png')}
-                            style={styles.petChipImage}
+                            style={styles.petChipDefault}
                           />
                       }
                     </View>
@@ -244,7 +244,7 @@ export default function ProfileScreen() {
                       source={displayPet.species === '고양이'
                         ? require('../../assets/default-cat.png')
                         : require('../../assets/default-dog.png')}
-                      style={styles.avatarImage}
+                      style={styles.avatarDefault}
                     />
                 }
                 <View style={styles.cameraIcon}><Text style={{ fontSize: 14 }}>📷</Text></View>
@@ -257,7 +257,7 @@ export default function ProfileScreen() {
                       source={displayPet.species === '고양이'
                         ? require('../../assets/default-cat.png')
                         : require('../../assets/default-dog.png')}
-                      style={styles.avatarImage}
+                      style={styles.avatarDefault}
                     />
                 }
               </View>
@@ -417,6 +417,7 @@ const styles = StyleSheet.create({
   },
   petChipAvatarActive: { borderColor: '#1A73E8' },
   petChipImage: { width: 40, height: 40, borderRadius: 20, resizeMode: 'cover' },
+  petChipDefault: { width: 34, height: 34, resizeMode: 'contain' },
   petChipName: { fontSize: 11, color: '#9CA3AF', maxWidth: 60 },
   petChipNameActive: { color: '#1A73E8', fontWeight: '700' },
   addPetBtn: { alignItems: 'center', gap: 4, width: 54 },
@@ -439,6 +440,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#EEF2FF', alignItems: 'center', justifyContent: 'center',
   },
   avatarImage: { width: 74, height: 74, borderRadius: 37, resizeMode: 'cover' },
+  avatarDefault: { width: 68, height: 68, resizeMode: 'contain' },
   cameraIcon: {
     position: 'absolute', bottom: 0, right: 0,
     width: 28, height: 28, borderRadius: 14,

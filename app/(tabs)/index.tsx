@@ -75,7 +75,7 @@ export default function HomeScreen() {
                   source={pet.species === '고양이'
                     ? require('../../assets/default-cat.png')
                     : require('../../assets/default-dog.png')}
-                  style={styles.petAvatarImage}
+                  style={styles.petAvatarDefault}
                 />
             }
           </View>
@@ -215,6 +215,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#EEF2FF', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
   },
   petAvatarImage: { width: 48, height: 48, borderRadius: 24, resizeMode: 'cover' },
+  petAvatarDefault: { width: 44, height: 44, resizeMode: 'contain' },
   petInfo: { flex: 1 },
   petName: { fontSize: 20, fontWeight: '700', color: '#111827' },
   petSub: { fontSize: 13, color: '#6B7280', marginTop: 2 },

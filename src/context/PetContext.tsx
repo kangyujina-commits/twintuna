@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 
 export interface PetProfile {
   id: string
@@ -31,11 +32,43 @@ const DEFAULT_PET: PetProfile = {
   weight: '4.2',
 }
 
+const STORAGE_PETS_KEY      = '@twintuna:pets'
+const STORAGE_ACTIVE_KEY    = '@twintuna:activePetId'
+
 const PetContext = createContext<PetContextValue | null>(null)
 
 export function PetProvider({ children }: { children: ReactNode }) {
-  const [pets, setPets]               = useState<PetProfile[]>([DEFAULT_PET])
-  const [activePetId, setActivePetId] = useState(DEFAULT_PET.id)
+  const [pets, setPetsState]               = useState<PetProfile[]>([DEFAULT_PET])
+  const [activePetId, setActivePetIdState] = useState(DEFAULT_PET.id)
+  const [loaded, setLoaded]                = useState(false)
+
+  // 앱 시작 시 저장된 데이터 불러오기
+  useEffect(() => {
+    async function load() {
+      const [petsJson, activeId] = await Promise.all([
+        AsyncStorage.getItem(STORAGE_PETS_KEY),
+        AsyncStorage.getItem(STORAGE_ACTIVE_KEY),
+      ])
+      if (petsJson) setPetsState(JSON.parse(petsJson))
+      if (activeId)  setActivePetIdState(activeId)
+      setLoaded(true)
+    }
+    load()
+  }, [])
+
+  // pets 변경 시 저장
+  function setPets(updater: PetProfile[] | ((prev: PetProfile[]) => PetProfile[])) {
+    setPetsState((prev) => {
+      const next = typeof updater === 'function' ? updater(prev) : updater
+      AsyncStorage.setItem(STORAGE_PETS_KEY, JSON.stringify(next))
+      return next
+    })
+  }
+
+  function setActivePetId(id: string) {
+    setActivePetIdState(id)
+    AsyncStorage.setItem(STORAGE_ACTIVE_KEY, id)
+  }
 
   const activePet = pets.find((p) => p.id === activePetId) ?? pets[0]
 
@@ -55,6 +88,8 @@ export function PetProvider({ children }: { children: ReactNode }) {
     const updated = typeof updater === 'function' ? updater(activePet) : updater
     updateActivePet(updated)
   }
+
+  if (!loaded) return null
 
   return (
     <PetContext.Provider value={{
