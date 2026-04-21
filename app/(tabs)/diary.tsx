@@ -16,6 +16,7 @@ const RECORD_TYPES: { type: RecordType; emoji: string; label: string; color: str
   { type: 'vaccine',  emoji: '💉',  label: '접종',   color: '#E0E7FF' },
   { type: 'hospital', emoji: '🏥',  label: '병원',   color: '#FEF3C7' },
   { type: 'medicine', emoji: '💊',  label: '투약',   color: '#FCE7F3' },
+  { type: 'other',    emoji: '📝',  label: '기타',   color: '#F3F4F6' },
 ]
 
 const TYPE_CONFIG: Record<RecordType, {
@@ -28,6 +29,7 @@ const TYPE_CONFIG: Record<RecordType, {
   vaccine:  { showValue: false, valuePlaceholder: '',        valueUnit: '',   notePlaceholder: '백신 이름 및 메모',        showVet: true,  showMealType: false, showPhoto: false },
   hospital: { showValue: false, valuePlaceholder: '',        valueUnit: '',   notePlaceholder: '진료 내용 및 처방',        showVet: true,  showMealType: false, showPhoto: false },
   medicine: { showValue: false, valuePlaceholder: '',        valueUnit: '',   notePlaceholder: '약 이름, 용량, 횟수',      showVet: false, showMealType: false, showPhoto: false },
+  other:    { showValue: false, valuePlaceholder: '',        valueUnit: '',   notePlaceholder: '자유롭게 기록해보세요',     showVet: false, showMealType: false, showPhoto: false },
 }
 
 function todayStr() { return new Date().toISOString().split('T')[0] }
@@ -124,7 +126,7 @@ interface RecordModalProps {
   initialValue?: string; initialNote?: string; initialVet?: string
   initialMealType?: MealType; initialPhotoUri?: string
   isEdit: boolean
-  onSave: (d: { value: string; note: string; vet: string; mealType: MealType; photoUri: string }) => void
+  onSave: (d: { value: string; note: string; vet: string; mealType: MealType; photoUri: string; extraFields: { label: string; value: string }[] }) => void
   onClose: () => void
 }
 
@@ -139,10 +141,14 @@ function RecordModal({
   const [vet,      setVet]      = useState(initialVet)
   const [mealType, setMealType] = useState<MealType>(initialMealType)
   const [photoUri, setPhotoUri] = useState(initialPhotoUri)
+  const [extraFields, setExtraFields] = useState<{ label: string; value: string }[]>([])
+  const [newFieldLabel, setNewFieldLabel] = useState('')
+  const [newFieldValue, setNewFieldValue] = useState('')
 
   function sync() {
     setValue(initialValue); setNote(initialNote); setVet(initialVet)
     setMealType(initialMealType); setPhotoUri(initialPhotoUri)
+    setExtraFields([]); setNewFieldLabel(''); setNewFieldValue('')
   }
 
   async function pickPhoto() {
@@ -221,7 +227,28 @@ function RecordModal({
             </View>
           )}
 
-          <TouchableOpacity style={styles.saveBtn} onPress={() => onSave({ value, note, vet, mealType, photoUri })}>
+          {/* 추가 항목 */}
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>추가 항목</Text>
+            {extraFields.map((field, fi) => (
+              <View key={fi} style={styles.extraFieldRow}>
+                <Text style={styles.extraFieldLabel}>{field.label}</Text>
+                <Text style={{ color: '#888' }}>: </Text>
+                <Text style={styles.extraFieldValue}>{field.value}</Text>
+                <TouchableOpacity onPress={() => setExtraFields(extraFields.filter((_, i) => i !== fi))}>
+                  <Text style={styles.extraFieldRemove}>✕</Text>
+                </TouchableOpacity>
+              </View>
+            ))}
+            <View style={styles.extraFieldInputRow}>
+              <TextInput style={[styles.input, { flex: 1, marginRight: 6 }]} value={newFieldLabel} onChangeText={setNewFieldLabel} placeholder="항목명" />
+              <TextInput style={[styles.input, { flex: 2, marginRight: 6 }]} value={newFieldValue} onChangeText={setNewFieldValue} placeholder="내용" />
+              <TouchableOpacity style={styles.extraFieldAddBtn} onPress={() => { if (!newFieldLabel.trim()) return; setExtraFields([...extraFields, { label: newFieldLabel.trim(), value: newFieldValue.trim() }]); setNewFieldLabel(''); setNewFieldValue('') }}>
+                <Text style={styles.extraFieldAddText}>+</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+          <TouchableOpacity style={styles.saveBtn} onPress={() => onSave({ value, note, vet, mealType, photoUri, extraFields })}>
             <Text style={styles.saveBtnText}>{isEdit ? '수정 완료' : '저장'}</Text>
           </TouchableOpacity>
         </View>
@@ -267,7 +294,7 @@ export default function DiaryScreen() {
     ? records.filter((r) => r.date === selectedDate)
     : records
 
-  function buildRecord(type: RecordType, data: { value: string; note: string; vet: string; mealType: MealType; photoUri: string }): Omit<DiaryRecord, 'id'> | null {
+  function buildRecord(type: RecordType, data: { value: string; note: string; vet: string; mealType: MealType; photoUri: string; extraFields: { label: string; value: string }[] }): Omit<DiaryRecord, 'id'> | null {
     const cfg = TYPE_CONFIG[type]
     if (cfg.showValue && (!data.value.trim() || isNaN(parseFloat(data.value)) || parseFloat(data.value) <= 0)) return null
     if (!cfg.showValue && !data.note.trim()) return null
@@ -280,10 +307,11 @@ export default function DiaryScreen() {
       vet_name:  data.vet.trim()  || undefined,
       meal_type: cfg.showMealType ? data.mealType : undefined,
       photo_uri: cfg.showPhoto && data.photoUri ? data.photoUri : undefined,
+      extra_fields: data.extraFields.length > 0 ? data.extraFields : undefined,
     }
   }
 
-  function handleAdd(data: { value: string; note: string; vet: string; mealType: MealType; photoUri: string }) {
+  function handleAdd(data: { value: string; note: string; vet: string; mealType: MealType; photoUri: string; extraFields: { label: string; value: string }[] }) {
     if (!addType) return
     const r = buildRecord(addType, data)
     if (!r) return
@@ -291,7 +319,7 @@ export default function DiaryScreen() {
     setAddType(null)
   }
 
-  function handleEditSave(data: { value: string; note: string; vet: string; mealType: MealType; photoUri: string }) {
+  function handleEditSave(data: { value: string; note: string; vet: string; mealType: MealType; photoUri: string; extraFields: { label: string; value: string }[] }) {
     if (!editRecord) return
     const r = buildRecord(editRecord.type, data)
     if (!r) return
@@ -474,6 +502,13 @@ const calStyles = StyleSheet.create({
 })
 
 const styles = StyleSheet.create({
+  extraFieldRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4, flexWrap: 'wrap' },
+  extraFieldLabel: { fontWeight: '600', color: '#374151', marginRight: 2 },
+  extraFieldValue: { flex: 1, color: '#4B5563' },
+  extraFieldRemove: { color: '#EF4444', fontSize: 14, paddingHorizontal: 8, paddingVertical: 2 },
+  extraFieldInputRow: { flexDirection: 'row', alignItems: 'center', marginTop: 6 },
+  extraFieldAddBtn: { backgroundColor: '#3B82F6', borderRadius: 8, width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
+  extraFieldAddText: { color: '#fff', fontSize: 22, fontWeight: '700', lineHeight: 28 },
   safe: { flex: 1, backgroundColor: '#F9FAFB' },
   scroll: { flex: 1 },
   content: { padding: 16, gap: 8 },
