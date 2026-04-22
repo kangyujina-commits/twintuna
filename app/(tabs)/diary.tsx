@@ -8,6 +8,7 @@ import * as ImagePicker from 'expo-image-picker'
 import { RecordType } from '../../src/types'
 import { useDiary, DiaryRecord, MealType } from '../../src/context/DiaryContext'
 import { usePet, PetProfile } from '../../src/context/PetContext'
+import { analyzeSymptomPhoto } from '../../src/lib/anthropic'
 
 const RECORD_TYPES: { type: RecordType; emoji: string; label: string; color: string }[] = [
   { type: 'weight',   emoji: '⚖️',  label: '체중',   color: '#DBEAFE' },
@@ -289,6 +290,10 @@ export default function DiaryScreen() {
   const [editRecord,     setEditRecord]    = useState<DiaryRecord | null>(null)
   const [viewMode,       setViewMode]      = useState<'list' | 'calendar'>('list')
   const [selectedDate,   setSelectedDate]  = useState('')
+  const [showAiModal,    setShowAiModal]   = useState(false)
+  const [aiPhoto,        setAiPhoto]       = useState('')
+  const [aiResult,       setAiResult]      = useState('')
+  const [aiLoading,      setAiLoading]     = useState(false)
 
   const displayRecords = viewMode === 'calendar' && selectedDate
     ? records.filter((r) => r.date === selectedDate)
@@ -325,6 +330,27 @@ export default function DiaryScreen() {
     if (!r) return
     updateRecord({ id: editRecord.id, ...r, date: editRecord.date })
     setEditRecord(null)
+  }
+
+  async function pickAiPhoto() {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync()
+    if (status !== 'granted') { Alert.alert('권한 필요', '사진 라이브러리 접근 권한이 필요합니다.'); return }
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, quality: 0.7 })
+    if (!result.canceled && result.assets[0]) setAiPhoto(result.assets[0].uri)
+  }
+
+  async function runAiAnalysis() {
+    if (!aiPhoto) return
+    setAiLoading(true)
+    setAiResult('')
+    try {
+      const text = await analyzeSymptomPhoto(aiPhoto)
+      setAiResult(text)
+    } catch (e: any) {
+      Alert.alert('분석 실패', e.message ?? '알 수 없는 오류가 발생했습니다.')
+    } finally {
+      setAiLoading(false)
+    }
   }
 
   function handleRecordPress(r: DiaryRecord) { setSelectedRecord(r); setShowOptions(true) }
@@ -371,6 +397,12 @@ export default function DiaryScreen() {
             </TouchableOpacity>
           ))}
         </View>
+
+        {/* AI 증상 분석 버튼 */}
+        <TouchableOpacity style={styles.aiBtn} onPress={() => { setAiPhoto(''); setAiResult(''); setShowAiModal(true) }}>
+          <Text style={styles.aiBtnText}>🤖 AI 증상 분석</Text>
+          <Text style={styles.aiBtnSub}>사진으로 1차 체크</Text>
+        </TouchableOpacity>
 
         {/* 뷰 모드 전환 */}
         <View style={styles.viewToggle}>
@@ -465,6 +497,53 @@ export default function DiaryScreen() {
             </View>
           </View>
         </TouchableOpacity>
+      </Modal>
+
+      {/* AI 증상 분석 모달 */}
+      <Modal visible={showAiModal} transparent animationType="slide" onRequestClose={() => setShowAiModal(false)}>
+        <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+          <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setShowAiModal(false)} />
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHeader}>
+              <View style={[styles.modalIcon, { backgroundColor: '#EDE9FE' }]}><Text style={{ fontSize: 22 }}>🤖</Text></View>
+              <Text style={styles.modalTitle}>AI 증상 분석</Text>
+              <TouchableOpacity onPress={() => setShowAiModal(false)}><Text style={styles.modalClose}>✕</Text></TouchableOpacity>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>반려동물 사진 선택</Text>
+              <View style={styles.photoRow}>
+                <TouchableOpacity style={styles.photoPickerBtn} onPress={pickAiPhoto}>
+                  <Text style={styles.photoPickerText}>📷 사진 선택</Text>
+                </TouchableOpacity>
+                {aiPhoto ? (
+                  <View style={styles.photoPreviewWrapper}>
+                    <Image source={{ uri: aiPhoto }} style={styles.photoPreview} />
+                    <TouchableOpacity style={styles.photoRemove} onPress={() => { setAiPhoto(''); setAiResult('') }}>
+                      <Text style={styles.photoRemoveText}>✕</Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : null}
+              </View>
+            </View>
+
+            {aiResult ? (
+              <View style={styles.aiResultBox}>
+                <Text style={styles.aiResultText}>{aiResult}</Text>
+              </View>
+            ) : null}
+
+            <TouchableOpacity
+              style={[styles.saveBtn, (!aiPhoto || aiLoading) && styles.saveBtnDisabled]}
+              onPress={runAiAnalysis}
+              disabled={!aiPhoto || aiLoading}
+            >
+              <Text style={styles.saveBtnText}>
+                {aiLoading ? '분석 중...' : aiResult ? '다시 분석' : '분석 시작'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       <RecordModal visible={addType !== null} type={addType} isEdit={false} onSave={handleAdd} onClose={() => setAddType(null)} />
@@ -597,7 +676,19 @@ const styles = StyleSheet.create({
   photoPreview: { width: 64, height: 64, borderRadius: 10 },
   photoRemove: { position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: 10, backgroundColor: '#EF4444', alignItems: 'center', justifyContent: 'center' },
   photoRemoveText: { color: '#FFF', fontSize: 10, fontWeight: '700' },
+  aiBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    backgroundColor: '#EDE9FE', borderRadius: 14, paddingVertical: 14, paddingHorizontal: 20,
+  },
+  aiBtnText: { fontSize: 15, fontWeight: '700', color: '#5B21B6' },
+  aiBtnSub: { fontSize: 11, color: '#7C3AED', fontWeight: '500' },
+  aiResultBox: {
+    backgroundColor: '#F5F3FF', borderRadius: 12, padding: 14,
+    borderLeftWidth: 3, borderLeftColor: '#7C3AED',
+  },
+  aiResultText: { fontSize: 13, color: '#374151', lineHeight: 20 },
   saveBtn: { backgroundColor: '#1A73E8', borderRadius: 14, padding: 16, alignItems: 'center', marginTop: 2 },
+  saveBtnDisabled: { backgroundColor: '#9CA3AF' },
   saveBtnText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
   optionsOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'center', alignItems: 'center' },
   optionsSheet: { backgroundColor: '#FFFFFF', borderRadius: 18, width: 220, overflow: 'hidden', shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 16, elevation: 12 },
