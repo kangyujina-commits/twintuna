@@ -347,7 +347,7 @@ export default function DiaryScreen() {
       const text = await analyzeSymptomPhoto(aiPhoto)
       setAiResult(text)
     } catch (e: any) {
-      Alert.alert('분석 실패', e.message ?? '알 수 없는 오류가 발생했습니다.')
+      setAiResult(`❌ 오류: ${e.message ?? '알 수 없는 오류가 발생했습니다.'}`)
     } finally {
       setAiLoading(false)
     }
