@@ -17,7 +17,7 @@ async function imageUriToBase64(uri: string): Promise<{ base64: string; mediaTyp
   const dataUrl: string = await new Promise((resolve, reject) => {
     const reader = new FileReader()
     reader.onloadend = () => resolve(reader.result as string)
-    reader.onerror = reject
+    reader.onerror = () => reject(new Error('이미지 파일 읽기 실패'))
     reader.readAsDataURL(blob)
   })
 
