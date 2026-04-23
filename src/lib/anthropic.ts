@@ -18,7 +18,9 @@ async function imageUriToBase64(uri: string): Promise<{ base64: string; mediaTyp
     reader.onloadend = () => {
       const result = reader.result as string
       const [header, base64] = result.split(',')
-      const mediaType = header.match(/:(.*?);/)?.[1] ?? 'image/jpeg'
+      const raw = header.match(/:(.*?);/)?.[1] ?? 'image/jpeg'
+      const allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+      const mediaType = allowed.includes(raw) ? raw : 'image/jpeg'
       resolve({ base64, mediaType })
     }
     reader.onerror = reject
