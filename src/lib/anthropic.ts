@@ -23,7 +23,7 @@ async function imageUriToBase64(uri: string): Promise<{ base64: string; mediaTyp
 
   // Step 2: resize via canvas (max 1024px)
   return new Promise((resolve, reject) => {
-    const img = new (globalThis as any).Image()
+    const img = (globalThis as any).document.createElement('img')
     img.onload = () => {
       const MAX = 1024
       const scale = Math.min(1, MAX / Math.max(img.width, img.height))
