@@ -9,6 +9,17 @@ import { usePet, PetProfile } from '../../src/context/PetContext'
 import { useDiary, VaccineItem } from '../../src/context/DiaryContext'
 import { useTheme, Colors } from '../../src/context/ThemeContext'
 
+function confirmAlert(message: string, onConfirm: () => void) {
+  if (Platform.OS === 'web') {
+    if (window.confirm(message)) onConfirm()
+  } else {
+    Alert.alert('확인', message, [
+      { text: '취소', style: 'cancel' },
+      { text: '삭제', style: 'destructive', onPress: onConfirm },
+    ])
+  }
+}
+
 function formatDateInput(raw: string): string {
   const digits = raw.replace(/\D/g, '').slice(0, 8)
   if (digits.length <= 4) return digits
@@ -303,13 +314,9 @@ export default function ProfileScreen() {
                   <TouchableOpacity
                     style={styles.deleteBtn}
                     onPress={() =>
-                      Alert.alert(
-                        '반려동물 삭제',
-                        `"${activePet.name}"을(를) 삭제할까요?\n관련 기록은 유지됩니다.`,
-                        [
-                          { text: '취소', style: 'cancel' },
-                          { text: '삭제', style: 'destructive', onPress: () => { deletePet(activePet.id); setEditing(false) } },
-                        ]
+                      confirmAlert(
+                        `"${activePet.name}"을(를) 삭제할까요?`,
+                        () => { deletePet(activePet.id); setEditing(false) }
                       )
                     }
                   >
@@ -364,10 +371,7 @@ export default function ProfileScreen() {
                       <Text style={[styles.nextDate, urgent && styles.nextDateUrgent]}>{v.next_date}</Text>
                     </View>
                     <TouchableOpacity style={styles.vaccineDelete} onPress={() =>
-                      Alert.alert('삭제', `"${v.name}" 일정을 삭제할까요?`, [
-                        { text: '취소', style: 'cancel' },
-                        { text: '삭제', style: 'destructive', onPress: () => deleteVaccine(v.id) },
-                      ])
+                      confirmAlert(`"${v.name}" 일정을 삭제할까요?`, () => deleteVaccine(v.id))
                     }>
                       <Text style={styles.vaccineDeleteText}>✕</Text>
                     </TouchableOpacity>
