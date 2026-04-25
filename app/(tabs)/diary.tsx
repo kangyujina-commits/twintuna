@@ -8,7 +8,7 @@ import * as ImagePicker from 'expo-image-picker'
 import { RecordType } from '../../src/types'
 import { useDiary, DiaryRecord, MealType } from '../../src/context/DiaryContext'
 import { usePet, PetProfile } from '../../src/context/PetContext'
-import { analyzeSymptomPhoto } from '../../src/lib/anthropic'
+import { analyzeSymptomPhoto, analyzeSymptomText, analyzeSymptomBoth } from '../../src/lib/anthropic'
 import { useTheme, Colors } from '../../src/context/ThemeContext'
 
 const RECORD_TYPES: { type: RecordType; emoji: string; label: string; color: string }[] = [
@@ -295,6 +295,7 @@ export default function DiaryScreen() {
   const [selectedDate,   setSelectedDate]  = useState('')
   const [showAiModal,    setShowAiModal]   = useState(false)
   const [aiPhoto,        setAiPhoto]       = useState('')
+  const [aiText,         setAiText]        = useState('')
   const [aiResult,       setAiResult]      = useState('')
   const [aiLoading,      setAiLoading]     = useState(false)
 
@@ -343,17 +344,33 @@ export default function DiaryScreen() {
   }
 
   async function runAiAnalysis() {
-    if (!aiPhoto) return
+    if (!aiPhoto && !aiText.trim()) return
     setAiLoading(true)
     setAiResult('')
     try {
-      const text = await analyzeSymptomPhoto(aiPhoto)
-      setAiResult(text)
+      let result: string
+      if (aiPhoto && aiText.trim())       result = await analyzeSymptomBoth(aiPhoto, aiText.trim())
+      else if (aiPhoto)                   result = await analyzeSymptomPhoto(aiPhoto)
+      else                               result = await analyzeSymptomText(aiText.trim())
+      setAiResult(result)
     } catch (e: any) {
       setAiResult(`❌ 오류: ${e.message ?? '알 수 없는 오류가 발생했습니다.'}`)
     } finally {
       setAiLoading(false)
     }
+  }
+
+  function saveAiResultToDiary() {
+    const note = aiText.trim() || 'AI 증상 분석'
+    addRecord({
+      petId:     activePet.id,
+      date:      todayStr(),
+      type:      'symptom',
+      note:      `${note}\n\n--- AI 분석 ---\n${aiResult}`,
+      photo_uri: aiPhoto || undefined,
+    })
+    setShowAiModal(false)
+    Alert.alert('저장 완료', '증상 기록이 일지에 저장되었어요.')
   }
 
   function handleRecordPress(r: DiaryRecord) { setSelectedRecord(r); setShowOptions(true) }
@@ -399,7 +416,7 @@ export default function DiaryScreen() {
           ))}
         </View>
 
-        <TouchableOpacity style={styles.aiBtn} onPress={() => { setAiPhoto(''); setAiResult(''); setShowAiModal(true) }}>
+        <TouchableOpacity style={styles.aiBtn} onPress={() => { setAiPhoto(''); setAiText(''); setAiResult(''); setShowAiModal(true) }}>
           <Text style={styles.aiBtnText}>🤖 AI 증상 분석</Text>
           <Text style={styles.aiBtnSub}>사진으로 1차 체크</Text>
         </TouchableOpacity>
@@ -497,16 +514,16 @@ export default function DiaryScreen() {
 
       <Modal visible={showAiModal} transparent animationType="slide" onRequestClose={() => setShowAiModal(false)}>
         <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-          <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setShowAiModal(false)} />
+          <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => { setShowAiModal(false); setAiText('') }} />
           <View style={styles.modalSheet}>
             <View style={styles.modalHeader}>
               <View style={[styles.modalIcon, { backgroundColor: '#EDE9FE' }]}><Text style={{ fontSize: 22 }}>🤖</Text></View>
               <Text style={styles.modalTitle}>AI 증상 분석</Text>
-              <TouchableOpacity onPress={() => setShowAiModal(false)}><Text style={styles.modalClose}>✕</Text></TouchableOpacity>
+              <TouchableOpacity onPress={() => { setShowAiModal(false); setAiText('') }}><Text style={styles.modalClose}>✕</Text></TouchableOpacity>
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>반려동물 사진 선택</Text>
+              <Text style={styles.inputLabel}>사진 첨부 (선택)</Text>
               <View style={styles.photoRow}>
                 <TouchableOpacity style={styles.photoPickerBtn} onPress={pickAiPhoto}>
                   <Text style={styles.photoPickerText}>📷 사진 선택</Text>
@@ -522,18 +539,37 @@ export default function DiaryScreen() {
               </View>
             </View>
 
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>증상 직접 입력 (선택)</Text>
+              <TextInput
+                style={[styles.input, styles.inputMultiline]}
+                value={aiText}
+                onChangeText={(v) => { setAiText(v); setAiResult('') }}
+                placeholder={'예: 이틀째 밥을 잘 안 먹고 기운이 없어요. 가끔 구토도 해요.'}
+                placeholderTextColor={c.textFaint}
+                multiline
+                numberOfLines={3}
+              />
+            </View>
+
             {aiResult ? (
-              <View style={[styles.aiResultBox, { maxHeight: 260 }]}>
+              <View style={[styles.aiResultBox, { maxHeight: 220 }]}>
                 <ScrollView nestedScrollEnabled showsVerticalScrollIndicator>
                   <Text style={styles.aiResultText}>{aiResult}</Text>
                 </ScrollView>
               </View>
             ) : null}
 
+            {aiResult ? (
+              <TouchableOpacity style={styles.aiSaveBtn} onPress={saveAiResultToDiary}>
+                <Text style={styles.aiSaveBtnText}>📝 증상 일지에 저장</Text>
+              </TouchableOpacity>
+            ) : null}
+
             <TouchableOpacity
-              style={[styles.saveBtn, (!aiPhoto || aiLoading) && styles.saveBtnDisabled]}
+              style={[styles.saveBtn, (!aiPhoto && !aiText.trim() || aiLoading) && styles.saveBtnDisabled]}
               onPress={runAiAnalysis}
-              disabled={!aiPhoto || aiLoading}
+              disabled={(!aiPhoto && !aiText.trim()) || aiLoading}
             >
               <Text style={styles.saveBtnText}>
                 {aiLoading ? '분석 중...' : aiResult ? '다시 분석' : '분석 시작'}
@@ -681,6 +717,11 @@ function getStyles(c: Colors) {
       borderLeftWidth: 3, borderLeftColor: '#7C3AED',
     },
     aiResultText: { fontSize: 13, color: '#374151', lineHeight: 20 },
+    aiSaveBtn: {
+      backgroundColor: '#D1FAE5', borderRadius: 12, padding: 13,
+      alignItems: 'center', borderWidth: 1, borderColor: '#6EE7B7',
+    },
+    aiSaveBtnText: { fontSize: 14, fontWeight: '700', color: '#065F46' },
     saveBtn: { backgroundColor: '#1A73E8', borderRadius: 14, padding: 16, alignItems: 'center', marginTop: 2 },
     saveBtnDisabled: { backgroundColor: '#9CA3AF' },
     saveBtnText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
