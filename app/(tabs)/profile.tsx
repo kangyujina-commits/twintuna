@@ -1,12 +1,12 @@
 import { useMemo, useState } from 'react'
 import {
   ScrollView, View, Text, StyleSheet, TouchableOpacity,
-  TextInput, Alert, KeyboardAvoidingView, Platform, Image, Modal,
+  TextInput, Alert, KeyboardAvoidingView, Platform, Image, Modal, Linking,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import * as ImagePicker from 'expo-image-picker'
 import { usePet, PetProfile } from '../../src/context/PetContext'
-import { useDiary, VaccineItem } from '../../src/context/DiaryContext'
+import { useDiary, VaccineItem, HospitalItem } from '../../src/context/DiaryContext'
 import { useTheme, Colors } from '../../src/context/ThemeContext'
 
 function confirmAlert(message: string, onConfirm: () => void) {
@@ -174,15 +174,17 @@ function AddPetModal({ visible, onSave, onClose }: AddPetModalProps) {
 
 export default function ProfileScreen() {
   const { pets, activePetId, activePet, setActivePetId, addPet, updateActivePet, deletePet } = usePet()
-  const { vaccines, addVaccine, deleteVaccine } = useDiary()
+  const { vaccines, addVaccine, deleteVaccine, hospitals, addHospital, updateHospital, deleteHospital } = useDiary()
   const { colors: c } = useTheme()
   const styles = useMemo(() => getStyles(c), [c])
 
-  const [editing, setEditing]         = useState(false)
-  const [draft, setDraft]             = useState<PetProfile>(activePet)
-  const [showAddPet, setShowAddPet]   = useState(false)
-  const [showAddVax, setShowAddVax]   = useState(false)
-  const [editVax, setEditVax]         = useState<VaccineItem | null>(null)
+  const [editing, setEditing]               = useState(false)
+  const [draft, setDraft]                   = useState<PetProfile>(activePet)
+  const [showAddPet, setShowAddPet]         = useState(false)
+  const [showAddVax, setShowAddVax]         = useState(false)
+  const [editVax, setEditVax]               = useState<VaccineItem | null>(null)
+  const [showAddHosp, setShowAddHosp]       = useState(false)
+  const [editHosp, setEditHosp]             = useState<HospitalItem | null>(null)
 
   const petVaccines = vaccines.filter((v) => v.petId === activePetId)
   const today = new Date().toISOString().split('T')[0]
@@ -384,6 +386,54 @@ export default function ProfileScreen() {
             </>
           )}
 
+          {/* 병원 즐겨찾기 */}
+          {!editing && (
+            <>
+              <View style={styles.sectionRow}>
+                <Text style={styles.sectionTitle}>🏥 병원 즐겨찾기</Text>
+                <TouchableOpacity style={styles.sectionAddBtn} onPress={() => setShowAddHosp(true)}>
+                  <Text style={styles.sectionAddText}>＋ 추가</Text>
+                </TouchableOpacity>
+              </View>
+
+              {hospitals.length === 0 && (
+                <View style={styles.emptyBox}>
+                  <Text style={styles.emptyText}>자주 가는 동물병원을 등록해두세요.</Text>
+                </View>
+              )}
+
+              {hospitals.map((h) => (
+                <View key={h.id} style={styles.hospCard}>
+                  <View style={styles.hospMain}>
+                    <Text style={styles.hospName}>{h.name}</Text>
+                    {h.vet_name ? <Text style={styles.hospSub}>👨‍⚕️ {h.vet_name}</Text> : null}
+                    {h.address  ? <Text style={styles.hospSub}>📍 {h.address}</Text>  : null}
+                    {h.memo     ? <Text style={styles.hospMemo}>{h.memo}</Text>        : null}
+                  </View>
+                  <View style={styles.hospActions}>
+                    {h.phone ? (
+                      <TouchableOpacity
+                        style={styles.hospCallBtn}
+                        onPress={() => Linking.openURL(`tel:${h.phone}`)}
+                      >
+                        <Text style={styles.hospCallText}>📞 전화</Text>
+                      </TouchableOpacity>
+                    ) : null}
+                    <TouchableOpacity style={styles.hospEditBtn} onPress={() => setEditHosp(h)}>
+                      <Text style={styles.hospEditText}>✏️</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.hospDeleteBtn}
+                      onPress={() => confirmAlert(`"${h.name}"을(를) 삭제할까요?`, () => deleteHospital(h.id))}
+                    >
+                      <Text style={styles.hospDeleteText}>✕</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))}
+            </>
+          )}
+
           {!editing && (
             <TouchableOpacity style={styles.editButton} onPress={startEdit}>
               <Text style={styles.editButtonText}>✏️  프로필 편집</Text>
@@ -400,6 +450,18 @@ export default function ProfileScreen() {
         onClose={() => setShowAddPet(false)}
       />
 
+      <HospitalModal
+        visible={showAddHosp || editHosp !== null}
+        initial={editHosp}
+        onSave={(data) => {
+          if (editHosp) updateHospital({ ...editHosp, ...data })
+          else          addHospital(data)
+          setShowAddHosp(false)
+          setEditHosp(null)
+        }}
+        onClose={() => { setShowAddHosp(false); setEditHosp(null) }}
+      />
+
       <VaccineModal
         visible={showAddVax || editVax !== null}
         initial={editVax}
@@ -411,6 +473,77 @@ export default function ProfileScreen() {
         onClose={() => { setShowAddVax(false); setEditVax(null) }}
       />
     </SafeAreaView>
+  )
+}
+
+function HospitalModal({ visible, initial, onSave, onClose }: {
+  visible: boolean
+  initial?: HospitalItem | null
+  onSave: (data: Omit<HospitalItem, 'id'>) => void
+  onClose: () => void
+}) {
+  const [name,     setName]     = useState('')
+  const [phone,    setPhone]    = useState('')
+  const [vetName,  setVetName]  = useState('')
+  const [address,  setAddress]  = useState('')
+  const [memo,     setMemo]     = useState('')
+  const { colors: c } = useTheme()
+  const styles = useMemo(() => getStyles(c), [c])
+
+  function sync() {
+    setName(initial?.name ?? '')
+    setPhone(initial?.phone ?? '')
+    setVetName(initial?.vet_name ?? '')
+    setAddress(initial?.address ?? '')
+    setMemo(initial?.memo ?? '')
+  }
+
+  function handleSave() {
+    if (!name.trim()) { Alert.alert('병원 이름을 입력해주세요.'); return }
+    onSave({
+      name:     name.trim(),
+      phone:    phone.trim()   || undefined,
+      vet_name: vetName.trim() || undefined,
+      address:  address.trim() || undefined,
+      memo:     memo.trim()    || undefined,
+    })
+  }
+
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose} onShow={sync}>
+      <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={onClose} />
+        <View style={styles.modalSheet}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>{initial ? '병원 편집' : '병원 추가'}</Text>
+            <TouchableOpacity onPress={onClose}><Text style={styles.modalClose}>✕</Text></TouchableOpacity>
+          </View>
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>병원 이름 *</Text>
+            <TextInput style={styles.input} value={name} onChangeText={setName} placeholder="예: 행복동물병원" placeholderTextColor={c.textFaint} autoFocus />
+          </View>
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>전화번호</Text>
+            <TextInput style={styles.input} value={phone} onChangeText={setPhone} placeholder="예: 02-1234-5678" placeholderTextColor={c.textFaint} keyboardType="phone-pad" />
+          </View>
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>담당 수의사</Text>
+            <TextInput style={styles.input} value={vetName} onChangeText={setVetName} placeholder="예: 김수의 원장님" placeholderTextColor={c.textFaint} />
+          </View>
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>주소</Text>
+            <TextInput style={styles.input} value={address} onChangeText={setAddress} placeholder="예: 서울시 강남구 테헤란로 123" placeholderTextColor={c.textFaint} />
+          </View>
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>메모</Text>
+            <TextInput style={[styles.input, { minHeight: 60, textAlignVertical: 'top' }]} value={memo} onChangeText={setMemo} placeholder="진료 시간, 특이사항 등" placeholderTextColor={c.textFaint} multiline />
+          </View>
+          <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
+            <Text style={styles.saveBtnText}>{initial ? '수정 완료' : '저장'}</Text>
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
+    </Modal>
   )
 }
 
@@ -530,6 +663,22 @@ function getStyles(c: Colors) {
     editButtonText: { fontSize: 15, fontWeight: '700', color: c.textSub },
     deleteBtn: { padding: 14, borderRadius: 12, alignItems: 'center', borderWidth: 1, borderColor: '#FCA5A5', backgroundColor: '#FEF2F2', marginTop: 4 },
     deleteBtnText: { fontSize: 14, fontWeight: '600', color: '#DC2626' },
+    hospCard: {
+      backgroundColor: c.card, borderRadius: 14, padding: 14,
+      flexDirection: 'row', alignItems: 'flex-start', gap: 10,
+      shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 1,
+    },
+    hospMain: { flex: 1, gap: 3 },
+    hospName: { fontSize: 15, fontWeight: '700', color: c.text },
+    hospSub: { fontSize: 12, color: c.textMuted },
+    hospMemo: { fontSize: 12, color: c.textFaint, marginTop: 2 },
+    hospActions: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    hospCallBtn: { backgroundColor: '#DBEAFE', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6 },
+    hospCallText: { fontSize: 12, fontWeight: '700', color: '#1D4ED8' },
+    hospEditBtn: { backgroundColor: c.chip, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 6 },
+    hospEditText: { fontSize: 13 },
+    hospDeleteBtn: { backgroundColor: '#FEF2F2', borderRadius: 10, paddingHorizontal: 8, paddingVertical: 6 },
+    hospDeleteText: { fontSize: 13, color: '#DC2626', fontWeight: '700' },
     modalOverlay: { flex: 1, justifyContent: 'flex-end' },
     modalSheet: {
       backgroundColor: c.card, borderTopLeftRadius: 24, borderTopRightRadius: 24,

@@ -25,6 +25,15 @@ export interface VaccineItem {
   next_date: string
 }
 
+export interface HospitalItem {
+  id: string
+  name: string
+  phone?: string
+  vet_name?: string
+  address?: string
+  memo?: string
+}
+
 interface DiaryContextValue {
   records: DiaryRecord[]
   addRecord:    (r: Omit<DiaryRecord, 'id'>) => void
@@ -34,10 +43,15 @@ interface DiaryContextValue {
   addVaccine:    (v: Omit<VaccineItem, 'id'>) => void
   updateVaccine: (v: VaccineItem) => void
   deleteVaccine: (id: string) => void
+  hospitals: HospitalItem[]
+  addHospital:    (h: Omit<HospitalItem, 'id'>) => void
+  updateHospital: (h: HospitalItem) => void
+  deleteHospital: (id: string) => void
 }
 
-const STORAGE_RECORDS_KEY  = '@twintuna:records'
-const STORAGE_VACCINES_KEY = '@twintuna:vaccines'
+const STORAGE_RECORDS_KEY   = '@twintuna:records'
+const STORAGE_VACCINES_KEY  = '@twintuna:vaccines'
+const STORAGE_HOSPITALS_KEY = '@twintuna:hospitals'
 
 const INIT_RECORDS: DiaryRecord[] = [
   { id: '1', petId: '1', date: '2026-04-13', type: 'weight', value: 4.2 },
@@ -54,18 +68,21 @@ const INIT_VACCINES: VaccineItem[] = [
 const DiaryContext = createContext<DiaryContextValue | null>(null)
 
 export function DiaryProvider({ children }: { children: ReactNode }) {
-  const [records,  setRecordsState]  = useState<DiaryRecord[]>(INIT_RECORDS)
-  const [vaccines, setVaccinesState] = useState<VaccineItem[]>(INIT_VACCINES)
-  const [loaded, setLoaded]          = useState(false)
+  const [records,   setRecordsState]   = useState<DiaryRecord[]>(INIT_RECORDS)
+  const [vaccines,  setVaccinesState]  = useState<VaccineItem[]>(INIT_VACCINES)
+  const [hospitals, setHospitalsState] = useState<HospitalItem[]>([])
+  const [loaded, setLoaded]            = useState(false)
 
   useEffect(() => {
     async function load() {
-      const [recJson, vacJson] = await Promise.all([
+      const [recJson, vacJson, hospJson] = await Promise.all([
         AsyncStorage.getItem(STORAGE_RECORDS_KEY),
         AsyncStorage.getItem(STORAGE_VACCINES_KEY),
+        AsyncStorage.getItem(STORAGE_HOSPITALS_KEY),
       ])
-      if (recJson) setRecordsState(JSON.parse(recJson))
-      if (vacJson) setVaccinesState(JSON.parse(vacJson))
+      if (recJson)  setRecordsState(JSON.parse(recJson))
+      if (vacJson)  setVaccinesState(JSON.parse(vacJson))
+      if (hospJson) setHospitalsState(JSON.parse(hospJson))
       setLoaded(true)
     }
     load()
@@ -81,6 +98,11 @@ export function DiaryProvider({ children }: { children: ReactNode }) {
     AsyncStorage.setItem(STORAGE_VACCINES_KEY, JSON.stringify(vaccines))
   }, [vaccines, loaded])
 
+  useEffect(() => {
+    if (!loaded) return
+    AsyncStorage.setItem(STORAGE_HOSPITALS_KEY, JSON.stringify(hospitals))
+  }, [hospitals, loaded])
+
   const addRecord    = (r: Omit<DiaryRecord, 'id'>) => setRecordsState((p) => [{ id: Date.now().toString(), ...r }, ...p])
   const updateRecord = (r: DiaryRecord)              => setRecordsState((p) => p.map((x) => (x.id === r.id ? r : x)))
   const deleteRecord = (id: string)                  => setRecordsState((p) => p.filter((x) => x.id !== id))
@@ -89,12 +111,17 @@ export function DiaryProvider({ children }: { children: ReactNode }) {
   const updateVaccine = (v: VaccineItem)              => setVaccinesState((p) => p.map((x) => (x.id === v.id ? v : x)))
   const deleteVaccine = (id: string)                  => setVaccinesState((p) => p.filter((x) => x.id !== id))
 
+  const addHospital    = (h: Omit<HospitalItem, 'id'>) => setHospitalsState((p) => [...p, { id: Date.now().toString(), ...h }])
+  const updateHospital = (h: HospitalItem)              => setHospitalsState((p) => p.map((x) => (x.id === h.id ? h : x)))
+  const deleteHospital = (id: string)                   => setHospitalsState((p) => p.filter((x) => x.id !== id))
+
   if (!loaded) return null
 
   return (
     <DiaryContext.Provider value={{
       records, addRecord, updateRecord, deleteRecord,
       vaccines, addVaccine, updateVaccine, deleteVaccine,
+      hospitals, addHospital, updateHospital, deleteHospital,
     }}>
       {children}
     </DiaryContext.Provider>
