@@ -333,14 +333,19 @@ export default function ProfileScreen() {
               <>
                 <Text style={styles.petName}>{activePet.name}</Text>
                 <Text style={styles.petSub}>{activePet.breed}</Text>
-                <View style={styles.statsRow}>
-                  <StatItem label="나이"  value={getAge(activePet.birth_date)} styles={styles} />
-                  <View style={styles.statDivider} />
-                  <StatItem label="생일"  value={activePet.birth_date || '미입력'} styles={styles} />
-                  <View style={styles.statDivider} />
-                  <StatItem label="체중"  value={`${activePet.weight} kg`} styles={styles} />
-                  <View style={styles.statDivider} />
-                  <StatItem label="종"    value={activePet.species} styles={styles} />
+                <View style={styles.statsGrid}>
+                  {[
+                    { emoji: '📅', label: '나이',   value: getAge(activePet.birth_date) },
+                    { emoji: '🎂', label: '생일',   value: activePet.birth_date || '미입력' },
+                    { emoji: '⚖️', label: '체중',   value: `${activePet.weight} kg` },
+                    { emoji: activePet.species === '고양이' ? '🐱' : '🐶', label: '종', value: activePet.species },
+                  ].map(({ emoji, label, value }) => (
+                    <View key={label} style={styles.statCard}>
+                      <Text style={styles.statCardEmoji}>{emoji}</Text>
+                      <Text style={styles.statCardValue}>{value}</Text>
+                      <Text style={styles.statCardLabel}>{label}</Text>
+                    </View>
+                  ))}
                 </View>
               </>
             )}
@@ -609,14 +614,16 @@ function getStyles(c: Colors) {
     },
     petName: { fontSize: 24, fontWeight: '800', color: c.text },
     petSub: { fontSize: 14, color: c.textMuted },
-    statsRow: {
-      flexDirection: 'row', marginTop: 12,
-      backgroundColor: c.bg, borderRadius: 14, padding: 14,
+    statsGrid: {
+      flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 14, width: '100%',
     },
-    statItem: { flex: 1, alignItems: 'center', gap: 2 },
-    statValue: { fontSize: 15, fontWeight: '700', color: c.text },
-    statLabel: { fontSize: 11, color: c.textFaint },
-    statDivider: { width: 1, backgroundColor: c.border, marginVertical: 4 },
+    statCard: {
+      flex: 1, minWidth: '45%', backgroundColor: c.bg, borderRadius: 14,
+      paddingVertical: 14, paddingHorizontal: 8, alignItems: 'center', gap: 4,
+    },
+    statCardEmoji: { fontSize: 22 },
+    statCardValue: { fontSize: 14, fontWeight: '700', color: c.text, textAlign: 'center' },
+    statCardLabel: { fontSize: 11, color: c.textFaint, fontWeight: '600' },
     editForm: { width: '100%', gap: 12, marginTop: 8 },
     field: { gap: 4 },
     fieldLabel: { fontSize: 12, fontWeight: '600', color: c.textMuted },
