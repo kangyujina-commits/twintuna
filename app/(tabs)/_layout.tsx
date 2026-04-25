@@ -1,4 +1,4 @@
-import { Tabs } from 'expo-router'
+import { Tabs, useRouter } from 'expo-router'
 import { Text, TouchableOpacity } from 'react-native'
 import { useTheme } from '../../src/context/ThemeContext'
 
@@ -13,6 +13,16 @@ function ThemeToggleBtn() {
   return (
     <TouchableOpacity onPress={toggle} style={{ paddingHorizontal: 14, paddingVertical: 4 }}>
       <Text style={{ fontSize: 20 }}>{isDark ? '☀️' : '🌙'}</Text>
+    </TouchableOpacity>
+  )
+}
+
+function HomeTitle() {
+  const router = useRouter()
+  const { colors: c } = useTheme()
+  return (
+    <TouchableOpacity onPress={() => router.replace('/(tabs)')} activeOpacity={0.7}>
+      <Text style={{ fontWeight: '700', fontSize: 18, color: c.text }}>TwinTuna_Paws</Text>
     </TouchableOpacity>
   )
 }
@@ -38,13 +48,13 @@ export default function TabLayout() {
         headerStyle: { backgroundColor: c.card },
         headerShadowVisible: false,
         headerTitleStyle: { fontWeight: '700', fontSize: 18, color: c.text },
+        headerTitle: () => <HomeTitle />,
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
           title: '홈',
-          headerTitle: 'TwinTuna_Paws',
           headerRight: () => <ThemeToggleBtn />,
           tabBarIcon: ({ focused }) => <TabIcon emoji="🏠" focused={focused} />,
         }}
