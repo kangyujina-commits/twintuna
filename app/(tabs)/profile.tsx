@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import {
   ScrollView, View, Text, StyleSheet, TouchableOpacity,
-  TextInput, Alert, KeyboardAvoidingView, Platform, Image, Modal, Switch,
+  TextInput, Alert, KeyboardAvoidingView, Platform, Image, Modal,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import * as ImagePicker from 'expo-image-picker'
@@ -164,7 +164,7 @@ function AddPetModal({ visible, onSave, onClose }: AddPetModalProps) {
 export default function ProfileScreen() {
   const { pets, activePetId, activePet, setActivePetId, addPet, updateActivePet } = usePet()
   const { vaccines, addVaccine, deleteVaccine } = useDiary()
-  const { isDark, toggle, colors: c } = useTheme()
+  const { colors: c } = useTheme()
   const styles = useMemo(() => getStyles(c), [c])
 
   const [editing, setEditing]         = useState(false)
@@ -366,18 +366,6 @@ export default function ProfileScreen() {
             </TouchableOpacity>
           )}
 
-          {/* 다크모드 토글 */}
-          {!editing && (
-            <View style={styles.settingRow}>
-              <Text style={styles.settingLabel}>{isDark ? '🌙 다크 모드' : '☀️ 라이트 모드'}</Text>
-              <Switch
-                value={isDark}
-                onValueChange={toggle}
-                trackColor={{ false: '#D1D5DB', true: '#1A73E8' }}
-                thumbColor="#FFFFFF"
-              />
-            </View>
-          )}
 
         </ScrollView>
       </KeyboardAvoidingView>
@@ -516,12 +504,6 @@ function getStyles(c: Colors) {
     emptyText: { color: c.textFaint, fontSize: 13, textAlign: 'center' },
     editButton: { backgroundColor: c.chip, borderRadius: 14, padding: 16, alignItems: 'center', marginTop: 4 },
     editButtonText: { fontSize: 15, fontWeight: '700', color: c.textSub },
-    settingRow: {
-      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-      backgroundColor: c.card, borderRadius: 14, padding: 16,
-      shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 1,
-    },
-    settingLabel: { fontSize: 15, fontWeight: '600', color: c.text },
     modalOverlay: { flex: 1, justifyContent: 'flex-end' },
     modalSheet: {
       backgroundColor: c.card, borderTopLeftRadius: 24, borderTopRightRadius: 24,

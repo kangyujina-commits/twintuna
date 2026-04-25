@@ -1,10 +1,19 @@
 import { Tabs } from 'expo-router'
-import { Text } from 'react-native'
+import { Text, TouchableOpacity } from 'react-native'
 import { useTheme } from '../../src/context/ThemeContext'
 
 function TabIcon({ emoji, focused }: { emoji: string; focused: boolean }) {
   return (
     <Text style={{ fontSize: 22, opacity: focused ? 1 : 0.5 }}>{emoji}</Text>
+  )
+}
+
+function ThemeToggleBtn() {
+  const { isDark, toggle } = useTheme()
+  return (
+    <TouchableOpacity onPress={toggle} style={{ paddingHorizontal: 14, paddingVertical: 4 }}>
+      <Text style={{ fontSize: 20 }}>{isDark ? '☀️' : '🌙'}</Text>
+    </TouchableOpacity>
   )
 }
 
@@ -36,6 +45,7 @@ export default function TabLayout() {
         options={{
           title: '홈',
           headerTitle: 'TwinTuna_Paws',
+          headerRight: () => <ThemeToggleBtn />,
           tabBarIcon: ({ focused }) => <TabIcon emoji="🏠" focused={focused} />,
         }}
       />
