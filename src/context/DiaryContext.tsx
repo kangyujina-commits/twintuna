@@ -57,7 +57,6 @@ export function DiaryProvider({ children }: { children: ReactNode }) {
   const [vaccines, setVaccinesState] = useState<VaccineItem[]>(INIT_VACCINES)
   const [loaded, setLoaded]          = useState(false)
 
-  // 앱 시작 시 저장된 데이터 불러오기
   useEffect(() => {
     async function load() {
       const [recJson, vacJson] = await Promise.all([
@@ -71,29 +70,23 @@ export function DiaryProvider({ children }: { children: ReactNode }) {
     load()
   }, [])
 
-  function setRecords(updater: DiaryRecord[] | ((prev: DiaryRecord[]) => DiaryRecord[])) {
-    setRecordsState((prev) => {
-      const next = typeof updater === 'function' ? updater(prev) : updater
-      AsyncStorage.setItem(STORAGE_RECORDS_KEY, JSON.stringify(next))
-      return next
-    })
-  }
+  useEffect(() => {
+    if (!loaded) return
+    AsyncStorage.setItem(STORAGE_RECORDS_KEY, JSON.stringify(records))
+  }, [records, loaded])
 
-  function setVaccines(updater: VaccineItem[] | ((prev: VaccineItem[]) => VaccineItem[])) {
-    setVaccinesState((prev) => {
-      const next = typeof updater === 'function' ? updater(prev) : updater
-      AsyncStorage.setItem(STORAGE_VACCINES_KEY, JSON.stringify(next))
-      return next
-    })
-  }
+  useEffect(() => {
+    if (!loaded) return
+    AsyncStorage.setItem(STORAGE_VACCINES_KEY, JSON.stringify(vaccines))
+  }, [vaccines, loaded])
 
-  const addRecord    = (r: Omit<DiaryRecord, 'id'>) => setRecords((p) => [{ id: Date.now().toString(), ...r }, ...p])
-  const updateRecord = (r: DiaryRecord)              => setRecords((p) => p.map((x) => (x.id === r.id ? r : x)))
-  const deleteRecord = (id: string)                  => setRecords((p) => p.filter((x) => x.id !== id))
+  const addRecord    = (r: Omit<DiaryRecord, 'id'>) => setRecordsState((p) => [{ id: Date.now().toString(), ...r }, ...p])
+  const updateRecord = (r: DiaryRecord)              => setRecordsState((p) => p.map((x) => (x.id === r.id ? r : x)))
+  const deleteRecord = (id: string)                  => setRecordsState((p) => p.filter((x) => x.id !== id))
 
-  const addVaccine    = (v: Omit<VaccineItem, 'id'>) => setVaccines((p) => [...p, { id: Date.now().toString(), ...v }])
-  const updateVaccine = (v: VaccineItem)              => setVaccines((p) => p.map((x) => (x.id === v.id ? v : x)))
-  const deleteVaccine = (id: string)                  => setVaccines((p) => p.filter((x) => x.id !== id))
+  const addVaccine    = (v: Omit<VaccineItem, 'id'>) => setVaccinesState((p) => [...p, { id: Date.now().toString(), ...v }])
+  const updateVaccine = (v: VaccineItem)              => setVaccinesState((p) => p.map((x) => (x.id === v.id ? v : x)))
+  const deleteVaccine = (id: string)                  => setVaccinesState((p) => p.filter((x) => x.id !== id))
 
   if (!loaded) return null
 
