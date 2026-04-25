@@ -5,6 +5,7 @@ import {
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import * as ImagePicker from 'expo-image-picker'
+import { useRouter } from 'expo-router'
 import { usePet, PetProfile } from '../../src/context/PetContext'
 import { useDiary, VaccineItem, HospitalItem } from '../../src/context/DiaryContext'
 import { useTheme, Colors } from '../../src/context/ThemeContext'
@@ -174,9 +175,17 @@ function AddPetModal({ visible, onSave, onClose }: AddPetModalProps) {
 
 export default function ProfileScreen() {
   const { pets, activePetId, activePet, setActivePetId, addPet, updateActivePet, deletePet } = usePet()
-  const { vaccines, addVaccine, deleteVaccine, hospitals, addHospital, updateHospital, deleteHospital } = useDiary()
+  const { records, vaccines, addVaccine, deleteVaccine, hospitals, addHospital, updateHospital, deleteHospital } = useDiary()
   const { colors: c } = useTheme()
   const styles = useMemo(() => getStyles(c), [c])
+  const router = useRouter()
+
+  const photoRecords = useMemo(() =>
+    records.filter((r) => r.petId === activePet.id && r.photo_uri)
+      .sort((a, b) => b.date.localeCompare(a.date))
+      .slice(0, 6),
+    [records, activePet.id]
+  )
 
   const [editing, setEditing]               = useState(false)
   const [draft, setDraft]                   = useState<PetProfile>(activePet)
@@ -441,6 +450,31 @@ export default function ProfileScreen() {
             </>
           )}
 
+          {/* 성장 앨범 */}
+          {!editing && (
+            <>
+              <View style={styles.sectionRow}>
+                <Text style={styles.sectionTitle}>📸 성장 앨범</Text>
+                {photoRecords.length > 0 && (
+                  <TouchableOpacity style={styles.sectionAddBtn} onPress={() => router.push('/album')}>
+                    <Text style={styles.sectionAddText}>전체 보기 →</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+              {photoRecords.length === 0 ? (
+                <View style={styles.emptyBox}>
+                  <Text style={styles.emptyText}>증상 기록에 사진을 첨부하면 여기에 모여요.</Text>
+                </View>
+              ) : (
+                <TouchableOpacity style={styles.albumGrid} onPress={() => router.push('/album')} activeOpacity={0.85}>
+                  {photoRecords.map((r) => (
+                    <Image key={r.id} source={{ uri: r.photo_uri! }} style={styles.albumThumb} />
+                  ))}
+                </TouchableOpacity>
+              )}
+            </>
+          )}
+
           {!editing && (
             <TouchableOpacity style={styles.editButton} onPress={startEdit}>
               <Text style={styles.editButtonText}>✏️  프로필 편집</Text>
@@ -668,6 +702,8 @@ function getStyles(c: Colors) {
     vaccineDeleteText: { fontSize: 14, color: c.border, fontWeight: '700' },
     emptyBox: { backgroundColor: c.chip, borderRadius: 12, padding: 18, alignItems: 'center' },
     emptyText: { color: c.textFaint, fontSize: 13, textAlign: 'center' },
+    albumGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, borderRadius: 14, overflow: 'hidden' },
+    albumThumb: { width: '31.5%', aspectRatio: 1, borderRadius: 8 },
     editButton: { backgroundColor: c.chip, borderRadius: 14, padding: 16, alignItems: 'center', marginTop: 4 },
     editButtonText: { fontSize: 15, fontWeight: '700', color: c.textSub },
     deleteBtn: { padding: 14, borderRadius: 12, alignItems: 'center', borderWidth: 1, borderColor: '#FCA5A5', backgroundColor: '#FEF2F2', marginTop: 4 },

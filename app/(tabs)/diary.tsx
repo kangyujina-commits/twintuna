@@ -7,21 +7,13 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { useLocalSearchParams } from 'expo-router'
 import * as ImagePicker from 'expo-image-picker'
 import { RecordType } from '../../src/types'
+import { RECORD_TYPES } from '../../src/constants/recordTypes'
 import { useDiary, DiaryRecord, MealType } from '../../src/context/DiaryContext'
 import { usePet, PetProfile } from '../../src/context/PetContext'
 import { analyzeSymptomPhoto, analyzeSymptomText, analyzeSymptomBoth } from '../../src/lib/anthropic'
 import { useTheme, Colors } from '../../src/context/ThemeContext'
 import { exportReport, getDateRange, filterRecords, Period } from '../../src/lib/export'
 
-const RECORD_TYPES: { type: RecordType; emoji: string; label: string; color: string }[] = [
-  { type: 'weight',   emoji: '⚖️',  label: '체중',   color: '#DBEAFE' },
-  { type: 'meal',     emoji: '🍽️',  label: '식사',   color: '#D1FAE5' },
-  { type: 'symptom',  emoji: '🌡️',  label: '증상',   color: '#FEE2E2' },
-  { type: 'vaccine',  emoji: '💉',  label: '접종',   color: '#E0E7FF' },
-  { type: 'hospital', emoji: '🏥',  label: '병원',   color: '#FEF3C7' },
-  { type: 'medicine', emoji: '💊',  label: '투약',   color: '#FCE7F3' },
-  { type: 'other',    emoji: '📝',  label: '기타',   color: '#F3F4F6' },
-]
 
 const TYPE_CONFIG: Record<RecordType, {
   showValue: boolean; valuePlaceholder: string; valueUnit: string
