@@ -528,8 +528,10 @@ export default function DiaryScreen() {
             </View>
 
             {aiResult ? (
-              <View style={styles.aiResultBox}>
-                <Text style={styles.aiResultText}>{aiResult}</Text>
+              <View style={[styles.aiResultBox, { maxHeight: 260 }]}>
+                <ScrollView nestedScrollEnabled showsVerticalScrollIndicator>
+                  <Text style={styles.aiResultText}>{aiResult}</Text>
+                </ScrollView>
               </View>
             ) : null}
 
