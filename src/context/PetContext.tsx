@@ -18,6 +18,7 @@ interface PetContextValue {
   setActivePetId: (id: string) => void
   addPet: (pet: Omit<PetProfile, 'id'>) => void
   updateActivePet: (pet: PetProfile) => void
+  deletePet: (id: string) => void
   // backward compat
   pet: PetProfile
   setPet: (updater: PetProfile | ((prev: PetProfile) => PetProfile)) => void
@@ -82,6 +83,17 @@ export function PetProvider({ children }: { children: ReactNode }) {
     setPets((prev) => prev.map((p) => (p.id === pet.id ? pet : p)))
   }
 
+  function deletePet(id: string) {
+    setPets((prev) => {
+      const next = prev.filter((p) => p.id !== id)
+      if (activePetId === id) {
+        const fallback = next[0]
+        if (fallback) setActivePetId(fallback.id)
+      }
+      return next
+    })
+  }
+
   // backward compat
   const pet = activePet
   function setPet(updater: PetProfile | ((prev: PetProfile) => PetProfile)) {
@@ -93,7 +105,7 @@ export function PetProvider({ children }: { children: ReactNode }) {
 
   return (
     <PetContext.Provider value={{
-      pets, activePetId, activePet, setActivePetId, addPet, updateActivePet,
+      pets, activePetId, activePet, setActivePetId, addPet, updateActivePet, deletePet,
       pet, setPet,
     }}>
       {children}

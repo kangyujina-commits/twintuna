@@ -162,7 +162,7 @@ function AddPetModal({ visible, onSave, onClose }: AddPetModalProps) {
 }
 
 export default function ProfileScreen() {
-  const { pets, activePetId, activePet, setActivePetId, addPet, updateActivePet } = usePet()
+  const { pets, activePetId, activePet, setActivePetId, addPet, updateActivePet, deletePet } = usePet()
   const { vaccines, addVaccine, deleteVaccine } = useDiary()
   const { colors: c } = useTheme()
   const styles = useMemo(() => getStyles(c), [c])
@@ -299,6 +299,23 @@ export default function ProfileScreen() {
                   <TouchableOpacity style={styles.cancelBtn} onPress={() => setEditing(false)}><Text style={styles.cancelBtnText}>취소</Text></TouchableOpacity>
                   <TouchableOpacity style={styles.saveBtn} onPress={saveEdit}><Text style={styles.saveBtnText}>저장</Text></TouchableOpacity>
                 </View>
+                {pets.length > 1 && (
+                  <TouchableOpacity
+                    style={styles.deleteBtn}
+                    onPress={() =>
+                      Alert.alert(
+                        '반려동물 삭제',
+                        `"${activePet.name}"을(를) 삭제할까요?\n관련 기록은 유지됩니다.`,
+                        [
+                          { text: '취소', style: 'cancel' },
+                          { text: '삭제', style: 'destructive', onPress: () => { deletePet(activePet.id); setEditing(false) } },
+                        ]
+                      )
+                    }
+                  >
+                    <Text style={styles.deleteBtnText}>🗑️ 이 반려동물 삭제</Text>
+                  </TouchableOpacity>
+                )}
               </View>
             ) : (
               <>
@@ -504,6 +521,8 @@ function getStyles(c: Colors) {
     emptyText: { color: c.textFaint, fontSize: 13, textAlign: 'center' },
     editButton: { backgroundColor: c.chip, borderRadius: 14, padding: 16, alignItems: 'center', marginTop: 4 },
     editButtonText: { fontSize: 15, fontWeight: '700', color: c.textSub },
+    deleteBtn: { padding: 14, borderRadius: 12, alignItems: 'center', borderWidth: 1, borderColor: '#FCA5A5', backgroundColor: '#FEF2F2', marginTop: 4 },
+    deleteBtnText: { fontSize: 14, fontWeight: '600', color: '#DC2626' },
     modalOverlay: { flex: 1, justifyContent: 'flex-end' },
     modalSheet: {
       backgroundColor: c.card, borderTopLeftRadius: 24, borderTopRightRadius: 24,
