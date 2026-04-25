@@ -132,6 +132,7 @@ export default function HomeScreen() {
           <View style={styles.petInfo}>
             <Text style={styles.petName}>{pet.name}</Text>
             <Text style={styles.petSub}>{pet.breed}  ·  {pet.weight} kg</Text>
+            {pet.birth_date ? <Text style={styles.petBirth}>🎂 {pet.birth_date}</Text> : null}
           </View>
         </View>
 
@@ -353,6 +354,7 @@ function getStyles(c: Colors) {
     petInfo: { flex: 1 },
     petName: { fontSize: 20, fontWeight: '700', color: c.text },
     petSub: { fontSize: 13, color: c.textMuted, marginTop: 2 },
+    petBirth: { fontSize: 12, color: c.textFaint, marginTop: 2 },
     sectionTitle: { fontSize: 15, fontWeight: '700', color: c.textSub, marginTop: 12, marginBottom: 6 },
     recordRow: {
       backgroundColor: c.card, borderRadius: 12, padding: 14,
