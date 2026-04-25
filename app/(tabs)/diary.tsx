@@ -131,6 +131,7 @@ interface RecordModalProps {
   initialExtraFields?: { label: string; value: string }[]
   isEdit: boolean
   onSave: (d: { value: string; note: string; vet: string; mealType: MealType; photoUri: string; extraFields: { label: string; value: string }[] }) => void
+  onDelete?: () => void
   onClose: () => void
 }
 
@@ -139,7 +140,7 @@ function RecordModal({
   initialValue = '', initialNote = '', initialVet = '',
   initialMealType = '건식', initialPhotoUri = '',
   initialExtraFields = [],
-  isEdit, onSave, onClose,
+  isEdit, onSave, onDelete, onClose,
 }: RecordModalProps) {
   const [value,    setValue]    = useState(initialValue)
   const [note,     setNote]     = useState(initialNote)
@@ -257,6 +258,11 @@ function RecordModal({
           <TouchableOpacity style={styles.saveBtn} onPress={() => onSave({ value, note, vet, mealType, photoUri, extraFields })}>
             <Text style={styles.saveBtnText}>{isEdit ? '수정 완료' : '저장'}</Text>
           </TouchableOpacity>
+          {isEdit && onDelete && (
+            <TouchableOpacity style={styles.deleteRecordBtn} onPress={onDelete}>
+              <Text style={styles.deleteRecordBtnText}>🗑️ 기록 삭제</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </KeyboardAvoidingView>
     </Modal>
@@ -293,8 +299,6 @@ export default function DiaryScreen() {
   const [addType,        setAddType]       = useState<RecordType | null>(null)
   const [addDate,        setAddDate]       = useState('')
   const [showCalPicker,  setShowCalPicker] = useState(false)
-  const [selectedRecord, setSelectedRecord] = useState<DiaryRecord | null>(null)
-  const [showOptions,    setShowOptions]   = useState(false)
   const [editRecord,     setEditRecord]    = useState<DiaryRecord | null>(null)
   const [viewMode,       setViewMode]      = useState<'list' | 'calendar'>('list')
   const [selectedDate,   setSelectedDate]  = useState('')
@@ -427,9 +431,13 @@ export default function DiaryScreen() {
     }
   }
 
-  function handleRecordPress(r: DiaryRecord) { setSelectedRecord(r); setShowOptions(true) }
-  function startEdit() { setShowOptions(false); setEditRecord(selectedRecord) }
-  function confirmDelete() { setShowOptions(false); deleteRecord(selectedRecord!.id); setSelectedRecord(null) }
+  function handleRecordPress(r: DiaryRecord) { setEditRecord(r) }
+  function confirmDelete() {
+    if (!editRecord) return
+    const id = editRecord.id
+    setEditRecord(null)
+    deleteRecord(id)
+  }
 
   const grouped = displayRecords.reduce<Record<string, DiaryRecord[]>>((acc, r) => {
     if (!acc[r.date]) acc[r.date] = []
@@ -759,9 +767,8 @@ export default function DiaryScreen() {
         initialNote={editRecord?.note ?? ''} initialVet={editRecord?.vet_name ?? ''}
         initialMealType={editRecord?.meal_type ?? '건식'} initialPhotoUri={editRecord?.photo_uri ?? ''}
         initialExtraFields={editRecord?.extra_fields ?? []}
-        isEdit onSave={handleEditSave} onClose={() => setEditRecord(null)}
+        isEdit onSave={handleEditSave} onDelete={confirmDelete} onClose={() => setEditRecord(null)}
       />
-      <OptionsModal visible={showOptions} onEdit={startEdit} onDelete={confirmDelete} onClose={() => setShowOptions(false)} />
     </SafeAreaView>
   )
 }
@@ -930,11 +937,10 @@ function getStyles(c: Colors) {
     saveBtn: { backgroundColor: '#1A73E8', borderRadius: 14, padding: 16, alignItems: 'center', marginTop: 2 },
     saveBtnDisabled: { backgroundColor: '#9CA3AF' },
     saveBtnText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
-    optionsOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'center', alignItems: 'center' },
-    optionsSheet: { backgroundColor: c.card, borderRadius: 18, width: 220, overflow: 'hidden', shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 16, elevation: 12 },
-    optionBtn: { padding: 18, alignItems: 'center' },
-    optionEdit: { fontSize: 16, color: '#1A73E8', fontWeight: '600' },
-    optionDelete: { fontSize: 16, color: '#EF4444', fontWeight: '600' },
-    optionDivider: { height: 1, backgroundColor: c.chip },
+    deleteRecordBtn: {
+      borderRadius: 12, padding: 14, alignItems: 'center',
+      borderWidth: 1, borderColor: '#FCA5A5', backgroundColor: '#FFF1F2',
+    },
+    deleteRecordBtnText: { fontSize: 14, fontWeight: '600', color: '#DC2626' },
   })
 }
