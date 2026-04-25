@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { ScrollView, View, Text, StyleSheet, TouchableOpacity } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { KNOWLEDGE_DATA } from '../../src/constants/knowledge'
 import { KnowledgeArticle, Species, ColorItem } from '../../src/types'
 import { usePet } from '../../src/context/PetContext'
+import { useTheme, Colors } from '../../src/context/ThemeContext'
 
 const FILTERS: { label: string; value: Species }[] = [
   { label: '전체', value: 'all' },
@@ -21,6 +22,8 @@ const URGENCY_LABELS: Record<ColorItem['urgency'], string> = {
 export default function KnowledgeScreen() {
   const [filter,     setFilter]     = useState<Species>('all')
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const { colors: c } = useTheme()
+  const styles = useMemo(() => getStyles(c), [c])
 
   const filtered = KNOWLEDGE_DATA.filter(
     (a) => filter === 'all' || a.species === filter || a.species === 'all'
@@ -60,6 +63,8 @@ export default function KnowledgeScreen() {
 }
 
 function ArticleCard({ article, onPress }: { article: KnowledgeArticle; onPress: () => void }) {
+  const { colors: c } = useTheme()
+  const styles = useMemo(() => getStyles(c), [c])
   return (
     <TouchableOpacity style={styles.card} onPress={onPress}>
       <View style={styles.cardHeader}>
@@ -80,8 +85,9 @@ function ArticleCard({ article, onPress }: { article: KnowledgeArticle; onPress:
 
 function ArticleDetail({ article, onBack }: { article: KnowledgeArticle; onBack: () => void }) {
   const { pet } = usePet()
+  const { colors: c } = useTheme()
+  const styles = useMemo(() => getStyles(c), [c])
 
-  // 체중 아티클: 반려동물 품종 자동 선택
   const [selectedBreed, setSelectedBreed] = useState<string | null>(() => {
     if (article.category !== 'weight') return null
     for (const block of article.content) {
@@ -138,7 +144,6 @@ function ArticleDetail({ article, onBack }: { article: KnowledgeArticle; onBack:
 
             return (
               <View key={i}>
-                {/* 품종 선택 칩 */}
                 {isWeightTable && (
                   <View style={styles.breedPickerSection}>
                     <Text style={styles.breedPickerLabel}>품종 선택</Text>
@@ -162,7 +167,6 @@ function ArticleDetail({ article, onBack }: { article: KnowledgeArticle; onBack:
                       </View>
                     </ScrollView>
 
-                    {/* 선택 품종 요약 카드 */}
                     {selectedRow && (
                       <View style={styles.breedSummary}>
                         <Text style={styles.breedSummaryTitle}>{selectedRow[0].split(' (')[0]}</Text>
@@ -183,7 +187,6 @@ function ArticleDetail({ article, onBack }: { article: KnowledgeArticle; onBack:
                   </View>
                 )}
 
-                {/* 테이블 */}
                 <View style={styles.table}>
                   <View style={[styles.tableRow, styles.tableHeaderRow]}>
                     {block.headers.map((h, j) => (
@@ -226,82 +229,80 @@ function ArticleDetail({ article, onBack }: { article: KnowledgeArticle; onBack:
   )
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F9FAFB' },
-  scroll: { flex: 1 },
-  content: { padding: 16, gap: 12 },
-  filterRow: { flexDirection: 'row', gap: 8, marginBottom: 4 },
-  filterBtn: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: '#F3F4F6' },
-  filterBtnActive: { backgroundColor: '#1A73E8' },
-  filterText: { fontSize: 13, color: '#6B7280', fontWeight: '500' },
-  filterTextActive: { color: '#FFFFFF', fontWeight: '700' },
-  card: {
-    backgroundColor: '#FFFFFF', borderRadius: 14, padding: 16, gap: 8,
-    shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
-  },
-  cardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  cardTitle: { fontSize: 15, fontWeight: '700', color: '#111827', flex: 1 },
-  emergencyBadge: { backgroundColor: '#FEE2E2', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 2 },
-  emergencyText: { fontSize: 11, fontWeight: '700', color: '#DC2626' },
-  cardSummary: { fontSize: 13, color: '#6B7280', lineHeight: 18 },
-  tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  tag: { backgroundColor: '#EFF6FF', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 2 },
-  tagText: { fontSize: 11, color: '#3B82F6' },
-  // 상세
-  backBtn: { padding: 16, paddingBottom: 4 },
-  backText: { fontSize: 14, color: '#1A73E8', fontWeight: '600' },
-  detailHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginBottom: 4 },
-  detailTitle: { fontSize: 20, fontWeight: '800', color: '#111827', flex: 1 },
-  detailSummary: { fontSize: 14, color: '#6B7280', lineHeight: 20, marginBottom: 8 },
-  bodyText: { fontSize: 14, color: '#374151', lineHeight: 22 },
-  // 컬러 가이드
-  colorGuide: { gap: 10 },
-  colorRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: '#FFFFFF', borderRadius: 12, padding: 12,
-    shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 1,
-  },
-  colorSwatch: { width: 32, height: 32, borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB' },
-  colorInfo: { flex: 1 },
-  colorLabel: { fontSize: 14, fontWeight: '700', color: '#111827' },
-  colorMeaning: { fontSize: 12, color: '#6B7280', marginTop: 2 },
-  urgencyBadge: { borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 },
-  urgencyText: { fontSize: 11, fontWeight: '700', color: '#374151' },
-  // 품종 선택
-  breedPickerSection: { marginBottom: 12, gap: 10 },
-  breedPickerLabel: { fontSize: 13, fontWeight: '700', color: '#374151' },
-  breedChipRow: { flexDirection: 'row', gap: 8, paddingVertical: 2 },
-  breedChip: {
-    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
-    backgroundColor: '#F3F4F6', borderWidth: 1, borderColor: '#E5E7EB',
-  },
-  breedChipActive: { backgroundColor: '#EFF6FF', borderColor: '#1A73E8' },
-  breedChipText: { fontSize: 13, color: '#6B7280', fontWeight: '500' },
-  breedChipTextActive: { color: '#1A73E8', fontWeight: '700' },
-  breedSummary: {
-    backgroundColor: '#EFF6FF', borderRadius: 14, padding: 16, gap: 10,
-    borderWidth: 1, borderColor: '#BFDBFE',
-  },
-  breedSummaryTitle: { fontSize: 15, fontWeight: '800', color: '#1E40AF', textAlign: 'center' },
-  breedSummaryRow: { flexDirection: 'row', alignItems: 'center' },
-  breedSummaryItem: { flex: 1, alignItems: 'center', gap: 2 },
-  breedSummaryLabel: { fontSize: 11, color: '#6B7280' },
-  breedSummaryValue: { fontSize: 16, fontWeight: '700', color: '#1D4ED8' },
-  breedSummaryDivider: { width: 1, height: 36, backgroundColor: '#BFDBFE' },
-  breedSummaryNote: { fontSize: 12, color: '#4B5563', textAlign: 'center' },
-  // 테이블
-  table: { borderRadius: 10, overflow: 'hidden', borderWidth: 1, borderColor: '#E5E7EB' },
-  tableRow: { flexDirection: 'row' },
-  tableHeaderRow: { backgroundColor: '#1E3A5F' },
-  tableRowEven: { backgroundColor: '#F8FAFC' },
-  tableRowHighlighted: { backgroundColor: '#EFF6FF', borderLeftWidth: 3, borderLeftColor: '#1A73E8' },
-  tableCellBreedSelected: { color: '#1E40AF', fontWeight: '700' },
-  tableHeaderCell: {
-    flex: 1, fontSize: 12, fontWeight: '700', color: '#FFFFFF',
-    padding: 10, borderRightWidth: 1, borderRightColor: '#2D4E7E',
-  },
-  tableCell: {
-    flex: 1, fontSize: 12, color: '#374151',
-    padding: 10, borderRightWidth: 1, borderRightColor: '#E5E7EB',
-  },
-})
+function getStyles(c: Colors) {
+  return StyleSheet.create({
+    safe: { flex: 1, backgroundColor: c.bg },
+    scroll: { flex: 1 },
+    content: { padding: 16, gap: 12 },
+    filterRow: { flexDirection: 'row', gap: 8, marginBottom: 4 },
+    filterBtn: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: c.chip },
+    filterBtnActive: { backgroundColor: '#1A73E8' },
+    filterText: { fontSize: 13, color: c.textMuted, fontWeight: '500' },
+    filterTextActive: { color: '#FFFFFF', fontWeight: '700' },
+    card: {
+      backgroundColor: c.card, borderRadius: 14, padding: 16, gap: 8,
+      shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
+    },
+    cardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    cardTitle: { fontSize: 15, fontWeight: '700', color: c.text, flex: 1 },
+    emergencyBadge: { backgroundColor: '#FEE2E2', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 2 },
+    emergencyText: { fontSize: 11, fontWeight: '700', color: '#DC2626' },
+    cardSummary: { fontSize: 13, color: c.textMuted, lineHeight: 18 },
+    tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+    tag: { backgroundColor: '#EFF6FF', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 2 },
+    tagText: { fontSize: 11, color: '#3B82F6' },
+    backBtn: { padding: 16, paddingBottom: 4 },
+    backText: { fontSize: 14, color: '#1A73E8', fontWeight: '600' },
+    detailHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginBottom: 4 },
+    detailTitle: { fontSize: 20, fontWeight: '800', color: c.text, flex: 1 },
+    detailSummary: { fontSize: 14, color: c.textMuted, lineHeight: 20, marginBottom: 8 },
+    bodyText: { fontSize: 14, color: c.textSub, lineHeight: 22 },
+    colorGuide: { gap: 10 },
+    colorRow: {
+      flexDirection: 'row', alignItems: 'center', gap: 12,
+      backgroundColor: c.card, borderRadius: 12, padding: 12,
+      shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 1,
+    },
+    colorSwatch: { width: 32, height: 32, borderRadius: 8, borderWidth: 1, borderColor: c.border },
+    colorInfo: { flex: 1 },
+    colorLabel: { fontSize: 14, fontWeight: '700', color: c.text },
+    colorMeaning: { fontSize: 12, color: c.textMuted, marginTop: 2 },
+    urgencyBadge: { borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 },
+    urgencyText: { fontSize: 11, fontWeight: '700', color: '#374151' },
+    breedPickerSection: { marginBottom: 12, gap: 10 },
+    breedPickerLabel: { fontSize: 13, fontWeight: '700', color: c.textSub },
+    breedChipRow: { flexDirection: 'row', gap: 8, paddingVertical: 2 },
+    breedChip: {
+      paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
+      backgroundColor: c.chip, borderWidth: 1, borderColor: c.border,
+    },
+    breedChipActive: { backgroundColor: '#EFF6FF', borderColor: '#1A73E8' },
+    breedChipText: { fontSize: 13, color: c.textMuted, fontWeight: '500' },
+    breedChipTextActive: { color: '#1A73E8', fontWeight: '700' },
+    breedSummary: {
+      backgroundColor: '#EFF6FF', borderRadius: 14, padding: 16, gap: 10,
+      borderWidth: 1, borderColor: '#BFDBFE',
+    },
+    breedSummaryTitle: { fontSize: 15, fontWeight: '800', color: '#1E40AF', textAlign: 'center' },
+    breedSummaryRow: { flexDirection: 'row', alignItems: 'center' },
+    breedSummaryItem: { flex: 1, alignItems: 'center', gap: 2 },
+    breedSummaryLabel: { fontSize: 11, color: '#6B7280' },
+    breedSummaryValue: { fontSize: 16, fontWeight: '700', color: '#1D4ED8' },
+    breedSummaryDivider: { width: 1, height: 36, backgroundColor: '#BFDBFE' },
+    breedSummaryNote: { fontSize: 12, color: '#4B5563', textAlign: 'center' },
+    table: { borderRadius: 10, overflow: 'hidden', borderWidth: 1, borderColor: c.border },
+    tableRow: { flexDirection: 'row' },
+    tableHeaderRow: { backgroundColor: '#1E3A5F' },
+    tableRowEven: { backgroundColor: c.inputBg },
+    tableRowHighlighted: { backgroundColor: '#EFF6FF', borderLeftWidth: 3, borderLeftColor: '#1A73E8' },
+    tableCellBreedSelected: { color: '#1E40AF', fontWeight: '700' },
+    tableHeaderCell: {
+      flex: 1, fontSize: 12, fontWeight: '700', color: '#FFFFFF',
+      padding: 10, borderRightWidth: 1, borderRightColor: '#2D4E7E',
+    },
+    tableCell: {
+      flex: 1, fontSize: 12, color: c.textSub,
+      padding: 10, borderRightWidth: 1, borderRightColor: c.border,
+    },
+  })
+}

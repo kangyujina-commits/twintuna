@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import {
   ScrollView, View, Text, StyleSheet, TouchableOpacity,
   Modal, TextInput, KeyboardAvoidingView, Platform, Image, Alert,
@@ -9,6 +9,7 @@ import { RecordType } from '../../src/types'
 import { useDiary, DiaryRecord, MealType } from '../../src/context/DiaryContext'
 import { usePet, PetProfile } from '../../src/context/PetContext'
 import { analyzeSymptomPhoto } from '../../src/lib/anthropic'
+import { useTheme, Colors } from '../../src/context/ThemeContext'
 
 const RECORD_TYPES: { type: RecordType; emoji: string; label: string; color: string }[] = [
   { type: 'weight',   emoji: '⚖️',  label: '체중',   color: '#DBEAFE' },
@@ -35,7 +36,6 @@ const TYPE_CONFIG: Record<RecordType, {
 
 function todayStr() { return new Date().toISOString().split('T')[0] }
 
-// ── 캘린더 컴포넌트
 const MONTH_NAMES = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월']
 const DAY_NAMES   = ['일','월','화','수','목','금','토']
 
@@ -45,11 +45,12 @@ function CalendarView({ records, selectedDate, onSelectDate }: {
   const initDate = selectedDate || todayStr()
   const [year,  setYear]  = useState(() => parseInt(initDate.split('-')[0]))
   const [month, setMonth] = useState(() => parseInt(initDate.split('-')[1]) - 1)
+  const { colors: c } = useTheme()
+  const calStyles = useMemo(() => getCalStyles(c), [c])
 
   const firstDOW  = new Date(year, month, 1).getDay()
   const totalDays = new Date(year, month + 1, 0).getDate()
 
-  // date → records for this month
   const recordsByDate = records.reduce<Record<string, DiaryRecord[]>>((acc, r) => {
     const [y, m] = r.date.split('-').map(Number)
     if (y === year && m === month + 1) {
@@ -121,7 +122,6 @@ function CalendarView({ records, selectedDate, onSelectDate }: {
   )
 }
 
-// ── 입력 모달
 interface RecordModalProps {
   visible: boolean; type: RecordType | null
   initialValue?: string; initialNote?: string; initialVet?: string
@@ -145,6 +145,8 @@ function RecordModal({
   const [extraFields, setExtraFields] = useState<{ label: string; value: string }[]>([])
   const [newFieldLabel, setNewFieldLabel] = useState('')
   const [newFieldValue, setNewFieldValue] = useState('')
+  const { colors: c } = useTheme()
+  const styles = useMemo(() => getStyles(c), [c])
 
   function sync() {
     setValue(initialValue); setNote(initialNote); setVet(initialVet)
@@ -191,7 +193,7 @@ function RecordModal({
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>{meta.label} ({cfg.valueUnit})</Text>
               <View style={styles.inputWithUnit}>
-                <TextInput style={[styles.input, { flex: 1 }]} value={value} onChangeText={setValue} placeholder={cfg.valuePlaceholder} keyboardType="decimal-pad" autoFocus />
+                <TextInput style={[styles.input, { flex: 1 }]} value={value} onChangeText={setValue} placeholder={cfg.valuePlaceholder} placeholderTextColor={c.textFaint} keyboardType="decimal-pad" autoFocus />
                 <Text style={styles.unitText}>{cfg.valueUnit}</Text>
               </View>
             </View>
@@ -199,7 +201,7 @@ function RecordModal({
 
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>메모{cfg.showValue ? ' (선택)' : ''}</Text>
-            <TextInput style={[styles.input, styles.inputMultiline]} value={note} onChangeText={setNote} placeholder={cfg.notePlaceholder} multiline numberOfLines={3} autoFocus={!cfg.showValue && !cfg.showMealType} />
+            <TextInput style={[styles.input, styles.inputMultiline]} value={note} onChangeText={setNote} placeholder={cfg.notePlaceholder} placeholderTextColor={c.textFaint} multiline numberOfLines={3} autoFocus={!cfg.showValue && !cfg.showMealType} />
           </View>
 
           {cfg.showPhoto && (
@@ -224,17 +226,16 @@ function RecordModal({
           {cfg.showVet && (
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>담당 수의사 / 병원 (선택)</Text>
-              <TextInput style={styles.input} value={vet} onChangeText={setVet} placeholder="예: 행복동물병원 김수의" />
+              <TextInput style={styles.input} value={vet} onChangeText={setVet} placeholder="예: 행복동물병원 김수의" placeholderTextColor={c.textFaint} />
             </View>
           )}
 
-          {/* 추가 항목 */}
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>추가 항목</Text>
             {extraFields.map((field, fi) => (
               <View key={fi} style={styles.extraFieldRow}>
                 <Text style={styles.extraFieldLabel}>{field.label}</Text>
-                <Text style={{ color: '#888' }}>: </Text>
+                <Text style={{ color: c.textMuted }}>: </Text>
                 <Text style={styles.extraFieldValue}>{field.value}</Text>
                 <TouchableOpacity onPress={() => setExtraFields(extraFields.filter((_, i) => i !== fi))}>
                   <Text style={styles.extraFieldRemove}>✕</Text>
@@ -242,8 +243,8 @@ function RecordModal({
               </View>
             ))}
             <View style={styles.extraFieldInputRow}>
-              <TextInput style={[styles.input, { flex: 1, marginRight: 6 }]} value={newFieldLabel} onChangeText={setNewFieldLabel} placeholder="항목명" />
-              <TextInput style={[styles.input, { flex: 2, marginRight: 6 }]} value={newFieldValue} onChangeText={setNewFieldValue} placeholder="내용" />
+              <TextInput style={[styles.input, { flex: 1, marginRight: 6 }]} value={newFieldLabel} onChangeText={setNewFieldLabel} placeholder="항목명" placeholderTextColor={c.textFaint} />
+              <TextInput style={[styles.input, { flex: 2, marginRight: 6 }]} value={newFieldValue} onChangeText={setNewFieldValue} placeholder="내용" placeholderTextColor={c.textFaint} />
               <TouchableOpacity style={styles.extraFieldAddBtn} onPress={() => { if (!newFieldLabel.trim()) return; setExtraFields([...extraFields, { label: newFieldLabel.trim(), value: newFieldValue.trim() }]); setNewFieldLabel(''); setNewFieldValue('') }}>
                 <Text style={styles.extraFieldAddText}>+</Text>
               </TouchableOpacity>
@@ -258,10 +259,11 @@ function RecordModal({
   )
 }
 
-// ── 옵션 팝업
 function OptionsModal({ visible, onEdit, onDelete, onClose }: {
   visible: boolean; onEdit: () => void; onDelete: () => void; onClose: () => void
 }) {
+  const { colors: c } = useTheme()
+  const styles = useMemo(() => getStyles(c), [c])
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <TouchableOpacity style={styles.optionsOverlay} activeOpacity={1} onPress={onClose}>
@@ -275,10 +277,11 @@ function OptionsModal({ visible, onEdit, onDelete, onClose }: {
   )
 }
 
-// ── 메인 화면
 export default function DiaryScreen() {
   const { records: allRecords, addRecord, updateRecord, deleteRecord } = useDiary()
   const { activePet, pets, activePetId, setActivePetId } = usePet()
+  const { colors: c } = useTheme()
+  const styles = useMemo(() => getStyles(c), [c])
 
   const records = allRecords.filter((r) => r.petId === activePet.id)
 
@@ -367,7 +370,6 @@ export default function DiaryScreen() {
     <SafeAreaView style={styles.safe} edges={['bottom']}>
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
 
-        {/* 반려동물 선택기 */}
         {pets.length > 1 && (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.switcherScroll}>
             <View style={styles.switcherRow}>
@@ -387,7 +389,6 @@ export default function DiaryScreen() {
           </ScrollView>
         )}
 
-        {/* 기록 추가 그리드 */}
         <Text style={styles.sectionTitle}>기록 추가</Text>
         <View style={styles.typeGrid}>
           {RECORD_TYPES.map((t) => (
@@ -398,13 +399,11 @@ export default function DiaryScreen() {
           ))}
         </View>
 
-        {/* AI 증상 분석 버튼 */}
         <TouchableOpacity style={styles.aiBtn} onPress={() => { setAiPhoto(''); setAiResult(''); setShowAiModal(true) }}>
           <Text style={styles.aiBtnText}>🤖 AI 증상 분석</Text>
           <Text style={styles.aiBtnSub}>사진으로 1차 체크</Text>
         </TouchableOpacity>
 
-        {/* 뷰 모드 전환 */}
         <View style={styles.viewToggle}>
           <TouchableOpacity style={[styles.toggleBtn, viewMode === 'list' && styles.toggleBtnActive]} onPress={() => setViewMode('list')}>
             <Text style={[styles.toggleText, viewMode === 'list' && styles.toggleTextActive]}>📋 목록</Text>
@@ -414,12 +413,10 @@ export default function DiaryScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* 캘린더 */}
         {viewMode === 'calendar' && (
           <CalendarView records={records} selectedDate={selectedDate} onSelectDate={setSelectedDate} />
         )}
 
-        {/* 기록 목록 */}
         {viewMode === 'calendar' && !selectedDate ? (
           <View style={styles.emptyBox}>
             <Text style={styles.emptyText}>날짜를 선택하면 해당 날의 기록을 볼 수 있어요.</Text>
@@ -478,7 +475,6 @@ export default function DiaryScreen() {
 
       </ScrollView>
 
-      {/* 캘린더 날짜 기록 추가 - 타입 선택 */}
       <Modal visible={showCalPicker} transparent animationType="slide" onRequestClose={() => setShowCalPicker(false)}>
         <TouchableOpacity style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.4)' }]} activeOpacity={1} onPress={() => setShowCalPicker(false)}>
           <View style={styles.calPickerSheet}>
@@ -499,7 +495,6 @@ export default function DiaryScreen() {
         </TouchableOpacity>
       </Modal>
 
-      {/* AI 증상 분석 모달 */}
       <Modal visible={showAiModal} transparent animationType="slide" onRequestClose={() => setShowAiModal(false)}>
         <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setShowAiModal(false)} />
@@ -561,141 +556,137 @@ export default function DiaryScreen() {
   )
 }
 
-// ── 캘린더 스타일
-const calStyles = StyleSheet.create({
-  container: { backgroundColor: '#FFFFFF', borderRadius: 16, padding: 12, marginBottom: 4, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 6, elevation: 2 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
-  arrow: { fontSize: 26, color: '#1A73E8', paddingHorizontal: 8 },
-  monthTitle: { fontSize: 16, fontWeight: '700', color: '#111827' },
-  dayRow: { flexDirection: 'row', marginBottom: 4 },
-  dayName: { flex: 1, textAlign: 'center', fontSize: 12, fontWeight: '600', color: '#6B7280' },
-  sun: { color: '#EF4444' },
-  grid: { flexDirection: 'row', flexWrap: 'wrap' },
-  cell: { width: `${100 / 7}%`, minHeight: 60, alignItems: 'center', paddingTop: 5, paddingBottom: 4, paddingHorizontal: 1, gap: 2 },
-  cellSelected: { backgroundColor: '#1A73E8', borderRadius: 10 },
-  dayNum: { fontSize: 13, color: '#374151' },
-  dayNumSelected: { color: '#FFFFFF', fontWeight: '700' },
-  cellTag: { borderRadius: 4, paddingHorizontal: 3, paddingVertical: 1, width: '95%' },
-  cellTagText: { fontSize: 8, color: '#374151', fontWeight: '500' },
-  cellTagTextSel: { color: '#FFFFFF' },
-  cellMore: { fontSize: 8, color: '#9CA3AF', fontWeight: '600' },
-  cellMoreSel: { color: 'rgba(255,255,255,0.7)' },
-})
+function getCalStyles(c: Colors) {
+  return StyleSheet.create({
+    container: { backgroundColor: c.card, borderRadius: 16, padding: 12, marginBottom: 4, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 6, elevation: 2 },
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
+    arrow: { fontSize: 26, color: '#1A73E8', paddingHorizontal: 8 },
+    monthTitle: { fontSize: 16, fontWeight: '700', color: c.text },
+    dayRow: { flexDirection: 'row', marginBottom: 4 },
+    dayName: { flex: 1, textAlign: 'center', fontSize: 12, fontWeight: '600', color: c.textMuted },
+    sun: { color: '#EF4444' },
+    grid: { flexDirection: 'row', flexWrap: 'wrap' },
+    cell: { width: `${100 / 7}%`, minHeight: 60, alignItems: 'center', paddingTop: 5, paddingBottom: 4, paddingHorizontal: 1, gap: 2 },
+    cellSelected: { backgroundColor: '#1A73E8', borderRadius: 10 },
+    dayNum: { fontSize: 13, color: c.textSub },
+    dayNumSelected: { color: '#FFFFFF', fontWeight: '700' },
+    cellTag: { borderRadius: 4, paddingHorizontal: 3, paddingVertical: 1, width: '95%' },
+    cellTagText: { fontSize: 8, color: '#374151', fontWeight: '500' },
+    cellTagTextSel: { color: '#FFFFFF' },
+    cellMore: { fontSize: 8, color: c.textFaint, fontWeight: '600' },
+    cellMoreSel: { color: 'rgba(255,255,255,0.7)' },
+  })
+}
 
-const styles = StyleSheet.create({
-  extraFieldRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4, flexWrap: 'wrap' },
-  extraFieldLabel: { fontWeight: '600', color: '#374151', marginRight: 2 },
-  extraFieldValue: { flex: 1, color: '#4B5563' },
-  extraFieldRemove: { color: '#EF4444', fontSize: 14, paddingHorizontal: 8, paddingVertical: 2 },
-  extraFieldInputRow: { flexDirection: 'row', alignItems: 'center', marginTop: 6 },
-  extraFieldAddBtn: { backgroundColor: '#3B82F6', borderRadius: 8, width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
-  extraFieldAddText: { color: '#fff', fontSize: 22, fontWeight: '700', lineHeight: 28 },
-  safe: { flex: 1, backgroundColor: '#F9FAFB' },
-  scroll: { flex: 1 },
-  content: { padding: 16, gap: 8 },
-  switcherScroll: { marginBottom: 4 },
-  switcherRow: { flexDirection: 'row', gap: 8, paddingVertical: 2 },
-  switcherChip: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
-    backgroundColor: '#F3F4F6', borderWidth: 1.5, borderColor: 'transparent',
-  },
-  switcherChipActive: { backgroundColor: '#EFF6FF', borderColor: '#1A73E8' },
-  switcherEmoji: { fontSize: 16 },
-  switcherName: { fontSize: 13, fontWeight: '600', color: '#6B7280' },
-  switcherNameActive: { color: '#1A73E8' },
-  sectionTitle: { fontSize: 15, fontWeight: '700', color: '#374151', marginTop: 4, marginBottom: 6 },
-  typeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  typeCard: { width: '30%', borderRadius: 14, paddingVertical: 14, alignItems: 'center', gap: 4 },
-  typeLabel: { fontSize: 12, fontWeight: '600', color: '#374151' },
-
-  // 뷰 토글
-  viewToggle: { flexDirection: 'row', gap: 8, marginTop: 4 },
-  toggleBtn: { flex: 1, paddingVertical: 10, borderRadius: 12, backgroundColor: '#F3F4F6', alignItems: 'center' },
-  toggleBtnActive: { backgroundColor: '#1A73E8' },
-  toggleText: { fontSize: 13, fontWeight: '600', color: '#6B7280' },
-  toggleTextActive: { color: '#FFFFFF' },
-
-  // 기록 카드
-  dateHeader: { fontSize: 13, fontWeight: '600', color: '#6B7280', marginTop: 10, marginBottom: 4 },
-  recordCard: {
-    backgroundColor: '#FFFFFF', borderRadius: 12, padding: 12,
-    flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 6,
-    shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 1,
-  },
-  recordIcon: { width: 42, height: 42, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  recordBody: { flex: 1, gap: 2 },
-  recordTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  recordType: { fontSize: 13, fontWeight: '600', color: '#374151' },
-  mealBadge: { backgroundColor: '#D1FAE5', borderRadius: 6, paddingHorizontal: 7, paddingVertical: 1 },
-  mealBadgeText: { fontSize: 11, color: '#065F46', fontWeight: '600' },
-  recordValue: { fontSize: 14, color: '#111827' },
-  recordNote: { fontSize: 12, color: '#6B7280' },
-  recordThumb: { width: 72, height: 72, borderRadius: 8, marginTop: 6 },
-  tapHint: { fontSize: 14, color: '#D1D5DB', letterSpacing: 1 },
-  emptyBox: { backgroundColor: '#F3F4F6', borderRadius: 12, padding: 18, alignItems: 'center' },
-  emptyText: { color: '#9CA3AF', fontSize: 13, textAlign: 'center' },
-
-  // 캘린더 날짜 헤더
-  calDateRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4, marginBottom: 6 },
-  calAddBtn: { marginLeft: 'auto', backgroundColor: '#EFF6FF', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 },
-  calAddText: { fontSize: 12, fontWeight: '700', color: '#1A73E8' },
-  calPickerSheet: {
-    backgroundColor: '#FFF', borderTopLeftRadius: 24, borderTopRightRadius: 24,
-    padding: 24, paddingTop: 20, gap: 14,
-  },
-  calPickerTitle: { fontSize: 15, fontWeight: '700', color: '#374151', textAlign: 'center', marginBottom: 4 },
-  // 모달
-  modalOverlay: { flex: 1, justifyContent: 'flex-end' },
-  modalBackdrop: { flex: 1 },
-  modalSheet: {
-    backgroundColor: '#FFFFFF', borderTopLeftRadius: 24, borderTopRightRadius: 24,
-    padding: 24, gap: 14,
-    shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 20, elevation: 10,
-  },
-  modalHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  modalIcon: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  modalTitle: { flex: 1, fontSize: 18, fontWeight: '800', color: '#111827' },
-  modalClose: { fontSize: 18, color: '#9CA3AF', padding: 4 },
-  inputGroup: { gap: 6 },
-  inputLabel: { fontSize: 12, fontWeight: '600', color: '#6B7280' },
-  input: {
-    borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 12,
-    padding: 12, fontSize: 14, color: '#111827', backgroundColor: '#F9FAFB',
-  },
-  inputWithUnit: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  inputMultiline: { minHeight: 72, textAlignVertical: 'top' },
-  unitText: { fontSize: 14, fontWeight: '600', color: '#6B7280', width: 28 },
-  segmentRow: { flexDirection: 'row', gap: 8 },
-  segmentBtn: { flex: 1, paddingVertical: 10, borderRadius: 10, borderWidth: 1, borderColor: '#E5E7EB', alignItems: 'center', backgroundColor: '#F9FAFB' },
-  segmentBtnActive: { borderColor: '#10B981', backgroundColor: '#D1FAE5' },
-  segmentText: { fontSize: 13, color: '#6B7280', fontWeight: '500' },
-  segmentTextActive: { color: '#065F46', fontWeight: '700' },
-  photoRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  photoPickerBtn: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 10, borderWidth: 1, borderColor: '#E5E7EB', backgroundColor: '#F9FAFB' },
-  photoPickerText: { fontSize: 13, color: '#374151', fontWeight: '500' },
-  photoPreviewWrapper: { position: 'relative' },
-  photoPreview: { width: 64, height: 64, borderRadius: 10 },
-  photoRemove: { position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: 10, backgroundColor: '#EF4444', alignItems: 'center', justifyContent: 'center' },
-  photoRemoveText: { color: '#FFF', fontSize: 10, fontWeight: '700' },
-  aiBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-    backgroundColor: '#EDE9FE', borderRadius: 14, paddingVertical: 14, paddingHorizontal: 20,
-  },
-  aiBtnText: { fontSize: 15, fontWeight: '700', color: '#5B21B6' },
-  aiBtnSub: { fontSize: 11, color: '#7C3AED', fontWeight: '500' },
-  aiResultBox: {
-    backgroundColor: '#F5F3FF', borderRadius: 12, padding: 14,
-    borderLeftWidth: 3, borderLeftColor: '#7C3AED',
-  },
-  aiResultText: { fontSize: 13, color: '#374151', lineHeight: 20 },
-  saveBtn: { backgroundColor: '#1A73E8', borderRadius: 14, padding: 16, alignItems: 'center', marginTop: 2 },
-  saveBtnDisabled: { backgroundColor: '#9CA3AF' },
-  saveBtnText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
-  optionsOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'center', alignItems: 'center' },
-  optionsSheet: { backgroundColor: '#FFFFFF', borderRadius: 18, width: 220, overflow: 'hidden', shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 16, elevation: 12 },
-  optionBtn: { padding: 18, alignItems: 'center' },
-  optionEdit: { fontSize: 16, color: '#1A73E8', fontWeight: '600' },
-  optionDelete: { fontSize: 16, color: '#EF4444', fontWeight: '600' },
-  optionDivider: { height: 1, backgroundColor: '#F3F4F6' },
-})
+function getStyles(c: Colors) {
+  return StyleSheet.create({
+    extraFieldRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4, flexWrap: 'wrap' },
+    extraFieldLabel: { fontWeight: '600', color: c.textSub, marginRight: 2 },
+    extraFieldValue: { flex: 1, color: c.textMuted },
+    extraFieldRemove: { color: '#EF4444', fontSize: 14, paddingHorizontal: 8, paddingVertical: 2 },
+    extraFieldInputRow: { flexDirection: 'row', alignItems: 'center', marginTop: 6 },
+    extraFieldAddBtn: { backgroundColor: '#3B82F6', borderRadius: 8, width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
+    extraFieldAddText: { color: '#fff', fontSize: 22, fontWeight: '700', lineHeight: 28 },
+    safe: { flex: 1, backgroundColor: c.bg },
+    scroll: { flex: 1 },
+    content: { padding: 16, gap: 8 },
+    switcherScroll: { marginBottom: 4 },
+    switcherRow: { flexDirection: 'row', gap: 8, paddingVertical: 2 },
+    switcherChip: {
+      flexDirection: 'row', alignItems: 'center', gap: 6,
+      paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
+      backgroundColor: c.chip, borderWidth: 1.5, borderColor: 'transparent',
+    },
+    switcherChipActive: { backgroundColor: '#EFF6FF', borderColor: '#1A73E8' },
+    switcherEmoji: { fontSize: 16 },
+    switcherName: { fontSize: 13, fontWeight: '600', color: c.textMuted },
+    switcherNameActive: { color: '#1A73E8' },
+    sectionTitle: { fontSize: 15, fontWeight: '700', color: c.textSub, marginTop: 4, marginBottom: 6 },
+    typeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+    typeCard: { width: '30%', borderRadius: 14, paddingVertical: 14, alignItems: 'center', gap: 4 },
+    typeLabel: { fontSize: 12, fontWeight: '600', color: '#374151' },
+    viewToggle: { flexDirection: 'row', gap: 8, marginTop: 4 },
+    toggleBtn: { flex: 1, paddingVertical: 10, borderRadius: 12, backgroundColor: c.chip, alignItems: 'center' },
+    toggleBtnActive: { backgroundColor: '#1A73E8' },
+    toggleText: { fontSize: 13, fontWeight: '600', color: c.textMuted },
+    toggleTextActive: { color: '#FFFFFF' },
+    dateHeader: { fontSize: 13, fontWeight: '600', color: c.textMuted, marginTop: 10, marginBottom: 4 },
+    recordCard: {
+      backgroundColor: c.card, borderRadius: 12, padding: 12,
+      flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 6,
+      shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 1,
+    },
+    recordIcon: { width: 42, height: 42, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+    recordBody: { flex: 1, gap: 2 },
+    recordTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    recordType: { fontSize: 13, fontWeight: '600', color: c.textSub },
+    mealBadge: { backgroundColor: '#D1FAE5', borderRadius: 6, paddingHorizontal: 7, paddingVertical: 1 },
+    mealBadgeText: { fontSize: 11, color: '#065F46', fontWeight: '600' },
+    recordValue: { fontSize: 14, color: c.text },
+    recordNote: { fontSize: 12, color: c.textMuted },
+    recordThumb: { width: 72, height: 72, borderRadius: 8, marginTop: 6 },
+    tapHint: { fontSize: 14, color: c.border, letterSpacing: 1 },
+    emptyBox: { backgroundColor: c.chip, borderRadius: 12, padding: 18, alignItems: 'center' },
+    emptyText: { color: c.textFaint, fontSize: 13, textAlign: 'center' },
+    calDateRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4, marginBottom: 6 },
+    calAddBtn: { marginLeft: 'auto', backgroundColor: '#EFF6FF', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 },
+    calAddText: { fontSize: 12, fontWeight: '700', color: '#1A73E8' },
+    calPickerSheet: {
+      backgroundColor: c.card, borderTopLeftRadius: 24, borderTopRightRadius: 24,
+      padding: 24, paddingTop: 20, gap: 14,
+    },
+    calPickerTitle: { fontSize: 15, fontWeight: '700', color: c.text, textAlign: 'center', marginBottom: 4 },
+    modalOverlay: { flex: 1, justifyContent: 'flex-end' },
+    modalBackdrop: { flex: 1 },
+    modalSheet: {
+      backgroundColor: c.card, borderTopLeftRadius: 24, borderTopRightRadius: 24,
+      padding: 24, gap: 14,
+      shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 20, elevation: 10,
+    },
+    modalHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    modalIcon: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+    modalTitle: { flex: 1, fontSize: 18, fontWeight: '800', color: c.text },
+    modalClose: { fontSize: 18, color: c.textFaint, padding: 4 },
+    inputGroup: { gap: 6 },
+    inputLabel: { fontSize: 12, fontWeight: '600', color: c.textMuted },
+    input: {
+      borderWidth: 1, borderColor: c.border, borderRadius: 12,
+      padding: 12, fontSize: 14, color: c.text, backgroundColor: c.inputBg,
+    },
+    inputWithUnit: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    inputMultiline: { minHeight: 72, textAlignVertical: 'top' },
+    unitText: { fontSize: 14, fontWeight: '600', color: c.textMuted, width: 28 },
+    segmentRow: { flexDirection: 'row', gap: 8 },
+    segmentBtn: { flex: 1, paddingVertical: 10, borderRadius: 10, borderWidth: 1, borderColor: c.border, alignItems: 'center', backgroundColor: c.inputBg },
+    segmentBtnActive: { borderColor: '#10B981', backgroundColor: '#D1FAE5' },
+    segmentText: { fontSize: 13, color: c.textMuted, fontWeight: '500' },
+    segmentTextActive: { color: '#065F46', fontWeight: '700' },
+    photoRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    photoPickerBtn: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 10, borderWidth: 1, borderColor: c.border, backgroundColor: c.inputBg },
+    photoPickerText: { fontSize: 13, color: c.textSub, fontWeight: '500' },
+    photoPreviewWrapper: { position: 'relative' },
+    photoPreview: { width: 64, height: 64, borderRadius: 10 },
+    photoRemove: { position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: 10, backgroundColor: '#EF4444', alignItems: 'center', justifyContent: 'center' },
+    photoRemoveText: { color: '#FFF', fontSize: 10, fontWeight: '700' },
+    aiBtn: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+      backgroundColor: '#EDE9FE', borderRadius: 14, paddingVertical: 14, paddingHorizontal: 20,
+    },
+    aiBtnText: { fontSize: 15, fontWeight: '700', color: '#5B21B6' },
+    aiBtnSub: { fontSize: 11, color: '#7C3AED', fontWeight: '500' },
+    aiResultBox: {
+      backgroundColor: '#F5F3FF', borderRadius: 12, padding: 14,
+      borderLeftWidth: 3, borderLeftColor: '#7C3AED',
+    },
+    aiResultText: { fontSize: 13, color: '#374151', lineHeight: 20 },
+    saveBtn: { backgroundColor: '#1A73E8', borderRadius: 14, padding: 16, alignItems: 'center', marginTop: 2 },
+    saveBtnDisabled: { backgroundColor: '#9CA3AF' },
+    saveBtnText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
+    optionsOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'center', alignItems: 'center' },
+    optionsSheet: { backgroundColor: c.card, borderRadius: 18, width: 220, overflow: 'hidden', shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 16, elevation: 12 },
+    optionBtn: { padding: 18, alignItems: 'center' },
+    optionEdit: { fontSize: 16, color: '#1A73E8', fontWeight: '600' },
+    optionDelete: { fontSize: 16, color: '#EF4444', fontWeight: '600' },
+    optionDivider: { height: 1, backgroundColor: c.chip },
+  })
+}
