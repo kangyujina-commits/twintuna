@@ -424,16 +424,6 @@ export default function DiaryScreen() {
           </ScrollView>
         )}
 
-        <Text style={styles.sectionTitle}>기록 추가</Text>
-        <View style={styles.typeGrid}>
-          {RECORD_TYPES.map((t) => (
-            <TouchableOpacity key={t.type} style={[styles.typeCard, { backgroundColor: t.color }]} onPress={() => { setAddDate(todayStr()); setAddType(t.type) }}>
-              <Text style={{ fontSize: 24 }}>{t.emoji}</Text>
-              <Text style={styles.typeLabel}>{t.label}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
         <View style={styles.actionRow}>
           <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#EDE9FE' }]} onPress={() => { setAiPhoto(''); setAiText(''); setAiResult(''); setShowAiModal(true) }}>
             <Text style={styles.actionBtnEmoji}>🤖</Text>
@@ -443,6 +433,16 @@ export default function DiaryScreen() {
             <Text style={styles.actionBtnEmoji}>📤</Text>
             <Text style={[styles.actionBtnText, { color: '#166534' }]}>내보내기</Text>
           </TouchableOpacity>
+        </View>
+
+        <Text style={styles.sectionTitle}>기록 추가</Text>
+        <View style={styles.typeGrid}>
+          {RECORD_TYPES.map((t) => (
+            <TouchableOpacity key={t.type} style={[styles.typeCard, { backgroundColor: t.color }]} onPress={() => { setAddDate(todayStr()); setAddType(t.type) }}>
+              <Text style={{ fontSize: 24 }}>{t.emoji}</Text>
+              <Text style={styles.typeLabel}>{t.label}</Text>
+            </TouchableOpacity>
+          ))}
         </View>
 
         <View style={styles.viewToggle}>
