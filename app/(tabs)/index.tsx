@@ -16,6 +16,13 @@ const TYPE_UNITS: Partial<Record<RecordType, string>> = { weight: 'kg', meal: 'g
 
 function todayStr() { return new Date().toISOString().split('T')[0] }
 
+function formatDateInput(raw: string): string {
+  const digits = raw.replace(/\D/g, '').slice(0, 8)
+  if (digits.length <= 4) return digits
+  if (digits.length <= 6) return `${digits.slice(0, 4)}-${digits.slice(4)}`
+  return `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6)}`
+}
+
 function formatRecord(r: { type: RecordType; value?: number; note?: string; meal_type?: string }): string {
   const unit = TYPE_UNITS[r.type] ?? ''
   if (r.value !== undefined) {
@@ -160,9 +167,9 @@ function VaccineModal({ visible, petId, onSave, onClose }: {
           <Text style={styles.modalLabel}>접종명 *</Text>
           <TextInput style={styles.modalInput} value={name} onChangeText={setName} placeholder="예: 광견병, 종합백신" placeholderTextColor={c.textFaint} />
           <Text style={styles.modalLabel}>최근 접종일</Text>
-          <TextInput style={styles.modalInput} value={lastDate} onChangeText={setLastDate} placeholder="YYYY-MM-DD" placeholderTextColor={c.textFaint} />
+          <TextInput style={styles.modalInput} value={lastDate} onChangeText={(v) => setLastDate(formatDateInput(v))} placeholder="YYYY-MM-DD" placeholderTextColor={c.textFaint} keyboardType="number-pad" />
           <Text style={styles.modalLabel}>다음 예정일 *</Text>
-          <TextInput style={styles.modalInput} value={nextDate} onChangeText={setNextDate} placeholder="YYYY-MM-DD" placeholderTextColor={c.textFaint} />
+          <TextInput style={styles.modalInput} value={nextDate} onChangeText={(v) => setNextDate(formatDateInput(v))} placeholder="YYYY-MM-DD" placeholderTextColor={c.textFaint} keyboardType="number-pad" />
           <View style={styles.modalBtns}>
             <TouchableOpacity style={styles.modalCancel} onPress={onClose}>
               <Text style={styles.modalCancelText}>취소</Text>
