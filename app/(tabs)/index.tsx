@@ -215,7 +215,7 @@ function getStyles(c: Colors) {
       width: 64, height: 64, borderRadius: 32,
       backgroundColor: '#EEF2FF', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
     },
-    petAvatarImage: { width: 48, height: 48, borderRadius: 24, resizeMode: 'cover' },
+    petAvatarImage: { width: 64, height: 64, resizeMode: 'cover' },
     petAvatarDefault: { width: 44, height: 44, resizeMode: 'contain' },
     petInfo: { flex: 1 },
     petName: { fontSize: 20, fontWeight: '700', color: c.text },

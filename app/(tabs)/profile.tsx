@@ -193,10 +193,13 @@ export default function ProfileScreen() {
     if (status !== 'granted') { Alert.alert('권한 필요', '사진 라이브러리 접근 권한이 필요합니다.'); return }
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true, aspect: [1, 1], quality: 0.7,
+      allowsEditing: true, aspect: [1, 1], quality: 0.4,
+      base64: true,
     })
     if (!result.canceled && result.assets[0]) {
-      setDraft((d) => ({ ...d, avatar_uri: result.assets[0].uri }))
+      const asset = result.assets[0]
+      const uri = asset.base64 ? `data:image/jpeg;base64,${asset.base64}` : asset.uri
+      setDraft((d) => ({ ...d, avatar_uri: uri }))
     }
   }
 
