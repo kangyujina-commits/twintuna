@@ -180,9 +180,9 @@ function RecordModal({
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>식사 종류</Text>
               <View style={styles.segmentRow}>
-                {(['건식', '습식', '혼합'] as MealType[]).map((t) => (
-                  <TouchableOpacity key={t} style={[styles.segmentBtn, mealType === t && styles.segmentBtnActive]} onPress={() => setMealType(t)}>
-                    <Text style={[styles.segmentText, mealType === t && styles.segmentTextActive]}>{t}</Text>
+                {(['건식', '습식', '혼합', '물'] as MealType[]).map((t) => (
+                  <TouchableOpacity key={t} style={[styles.segmentBtn, mealType === t && (t === '물' ? styles.segmentBtnWater : styles.segmentBtnActive)]} onPress={() => setMealType(t)}>
+                    <Text style={[styles.segmentText, mealType === t && (t === '물' ? styles.segmentTextWater : styles.segmentTextActive)]}>{t === '물' ? '💧 물' : t}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
@@ -191,10 +191,10 @@ function RecordModal({
 
           {cfg.showValue && (
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>{meta.label} ({cfg.valueUnit})</Text>
+              <Text style={styles.inputLabel}>{meta.label} ({mealType === '물' ? 'ml' : cfg.valueUnit})</Text>
               <View style={styles.inputWithUnit}>
-                <TextInput style={[styles.input, { flex: 1 }]} value={value} onChangeText={setValue} placeholder={cfg.valuePlaceholder} placeholderTextColor={c.textFaint} keyboardType="decimal-pad" autoFocus />
-                <Text style={styles.unitText}>{cfg.valueUnit}</Text>
+                <TextInput style={[styles.input, { flex: 1 }]} value={value} onChangeText={setValue} placeholder={mealType === '물' ? '마신 양' : cfg.valuePlaceholder} placeholderTextColor={c.textFaint} keyboardType="decimal-pad" autoFocus />
+                <Text style={styles.unitText}>{mealType === '물' ? 'ml' : cfg.valueUnit}</Text>
               </View>
             </View>
           )}
@@ -458,7 +458,7 @@ export default function DiaryScreen() {
                               <Text style={styles.recordType}>{meta.label}</Text>
                               {r.meal_type && <View style={styles.mealBadge}><Text style={styles.mealBadgeText}>{r.meal_type}</Text></View>}
                             </View>
-                            {r.value !== undefined && <Text style={styles.recordValue}>{r.value} {cfg.valueUnit}</Text>}
+                            {r.value !== undefined && <Text style={styles.recordValue}>{r.value} {r.meal_type === '물' ? 'ml' : cfg.valueUnit}</Text>}
                             {r.note      && <Text style={styles.recordNote}>{r.note}</Text>}
                             {r.vet_name  && <Text style={styles.recordNote}>담당: {r.vet_name}</Text>}
                             {r.photo_uri && <Image source={{ uri: r.photo_uri }} style={styles.recordThumb} />}
@@ -659,8 +659,10 @@ function getStyles(c: Colors) {
     segmentRow: { flexDirection: 'row', gap: 8 },
     segmentBtn: { flex: 1, paddingVertical: 10, borderRadius: 10, borderWidth: 1, borderColor: c.border, alignItems: 'center', backgroundColor: c.inputBg },
     segmentBtnActive: { borderColor: '#10B981', backgroundColor: '#D1FAE5' },
+    segmentBtnWater: { borderColor: '#3B82F6', backgroundColor: '#DBEAFE' },
     segmentText: { fontSize: 13, color: c.textMuted, fontWeight: '500' },
     segmentTextActive: { color: '#065F46', fontWeight: '700' },
+    segmentTextWater: { color: '#1D4ED8', fontWeight: '700' },
     photoRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
     photoPickerBtn: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 10, borderWidth: 1, borderColor: c.border, backgroundColor: c.inputBg },
     photoPickerText: { fontSize: 13, color: c.textSub, fontWeight: '500' },

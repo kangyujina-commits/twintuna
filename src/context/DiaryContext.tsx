@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { RecordType } from '../types'
 
-export type MealType = '건식' | '습식' | '혼합'
+export type MealType = '건식' | '습식' | '혼합' | '물'
 
 export interface DiaryRecord {
   id: string
