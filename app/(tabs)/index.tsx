@@ -195,29 +195,33 @@ export default function HomeScreen() {
               <Text style={styles.sectionTitle}>📊 {thisMonth} 건강 리포트</Text>
             </View>
             <View style={styles.reportGrid}>
-              <View style={styles.reportCell}>
-                <Text style={styles.reportNum}>{monthReport.total}</Text>
-                <Text style={styles.reportLabel}>총 기록</Text>
-              </View>
-              <View style={styles.reportCell}>
-                <Text style={styles.reportNum}>{monthReport.hospital}</Text>
-                <Text style={styles.reportLabel}>병원 방문</Text>
-              </View>
-              <View style={styles.reportCell}>
-                <Text style={styles.reportNum}>{monthReport.symptom}</Text>
-                <Text style={styles.reportLabel}>증상 기록</Text>
-              </View>
-              <View style={styles.reportCell}>
-                <Text style={[styles.reportNum,
-                  monthReport.wChange === null ? {} :
-                  monthReport.wChange > 0 ? styles.wDiffTextUp : styles.wDiffTextDown
-                ]}>
-                  {monthReport.wChange === null
-                    ? '—'
-                    : `${monthReport.wChange > 0 ? '+' : ''}${monthReport.wChange} kg`}
-                </Text>
-                <Text style={styles.reportLabel}>체중 변화</Text>
-              </View>
+              {([
+                { num: monthReport.total,    label: '총 기록',   filter: 'all'      },
+                { num: monthReport.hospital, label: '병원 방문', filter: 'hospital' },
+                { num: monthReport.symptom,  label: '증상 기록', filter: 'symptom'  },
+                { num: null,                 label: '체중 변화', filter: 'weight'   },
+              ] as const).map(({ num, label, filter }) => {
+                const isWeight = filter === 'weight'
+                const displayNum = isWeight
+                  ? (monthReport.wChange === null
+                      ? '—'
+                      : `${monthReport.wChange > 0 ? '+' : ''}${monthReport.wChange} kg`)
+                  : String(num)
+                const numStyle = isWeight && monthReport.wChange !== null
+                  ? (monthReport.wChange > 0 ? styles.wDiffTextUp : styles.wDiffTextDown)
+                  : undefined
+                return (
+                  <TouchableOpacity
+                    key={label}
+                    style={styles.reportCell}
+                    onPress={() => router.push({ pathname: '/(tabs)/diary', params: { typeFilter: filter } })}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[styles.reportNum, numStyle]}>{displayNum}</Text>
+                    <Text style={styles.reportLabel}>{label}</Text>
+                  </TouchableOpacity>
+                )
+              })}
             </View>
           </>
         )}

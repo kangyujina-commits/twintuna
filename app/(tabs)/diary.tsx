@@ -1,9 +1,10 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import {
   ScrollView, View, Text, StyleSheet, TouchableOpacity,
   Modal, TextInput, KeyboardAvoidingView, Platform, Image, Alert,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import { useLocalSearchParams } from 'expo-router'
 import * as ImagePicker from 'expo-image-picker'
 import { RecordType } from '../../src/types'
 import { useDiary, DiaryRecord, MealType } from '../../src/context/DiaryContext'
@@ -285,6 +286,7 @@ export default function DiaryScreen() {
   const { activePet, pets, activePetId, setActivePetId } = usePet()
   const { colors: c } = useTheme()
   const styles = useMemo(() => getStyles(c), [c])
+  const { typeFilter: paramTypeFilter } = useLocalSearchParams<{ typeFilter?: string }>()
 
   const records = allRecords.filter((r) => r.petId === activePet.id)
 
@@ -307,6 +309,16 @@ export default function DiaryScreen() {
   const [searchQuery,     setSearchQuery]    = useState('')
   const [typeFilter,      setTypeFilter]     = useState<RecordType | 'all'>('all')
   const [dateFilter,      setDateFilter]     = useState<Period | '전체'>('전체')
+
+  useEffect(() => {
+    if (!paramTypeFilter) return
+    if (paramTypeFilter === 'all') {
+      setTypeFilter('all')
+    } else if (RECORD_TYPES.some((t) => t.type === paramTypeFilter)) {
+      setTypeFilter(paramTypeFilter as RecordType)
+    }
+    setViewMode('list')
+  }, [paramTypeFilter])
 
   const displayRecords = useMemo(() => {
     let result = viewMode === 'calendar' && selectedDate
@@ -545,10 +557,10 @@ export default function DiaryScreen() {
         ) : (
           <>
             {viewMode === 'calendar' && selectedDate && (
-              <View style={styles.calDateRow}>
-                <Text style={styles.sectionTitle}>{selectedDate} 기록</Text>
+              <View style={styles.calDateBlock}>
+                <Text style={styles.calDateTitle}>{selectedDate} 기록</Text>
                 <TouchableOpacity style={styles.calAddBtn} onPress={() => setShowCalPicker(true)}>
-                  <Text style={styles.calAddText}>+ 추가</Text>
+                  <Text style={styles.calAddText}>+ 이 날 기록 추가</Text>
                 </TouchableOpacity>
               </View>
             )}
@@ -822,9 +834,13 @@ function getStyles(c: Colors) {
     tapHint: { fontSize: 14, color: c.border, letterSpacing: 1 },
     emptyBox: { backgroundColor: c.chip, borderRadius: 12, padding: 18, alignItems: 'center' },
     emptyText: { color: c.textFaint, fontSize: 13, textAlign: 'center' },
-    calDateRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4, marginBottom: 6 },
-    calAddBtn: { marginLeft: 'auto', backgroundColor: '#EFF6FF', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 },
-    calAddText: { fontSize: 12, fontWeight: '700', color: '#1A73E8' },
+    calDateBlock: { gap: 8, marginTop: 4, marginBottom: 4 },
+    calDateTitle: { fontSize: 15, fontWeight: '700', color: c.textSub },
+    calAddBtn: {
+      backgroundColor: '#1A73E8', borderRadius: 12,
+      paddingVertical: 12, alignItems: 'center',
+    },
+    calAddText: { fontSize: 14, fontWeight: '700', color: '#FFF' },
     calPickerSheet: {
       backgroundColor: c.card, borderTopLeftRadius: 24, borderTopRightRadius: 24,
       padding: 24, paddingTop: 20, gap: 14,
