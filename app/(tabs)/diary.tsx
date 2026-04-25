@@ -491,7 +491,11 @@ export default function DiaryScreen() {
         </View>
 
         {viewMode === 'calendar' && (
-          <CalendarView records={records} selectedDate={selectedDate} onSelectDate={setSelectedDate} />
+          <CalendarView
+            records={records}
+            selectedDate={selectedDate}
+            onSelectDate={(date) => { setSelectedDate(date); if (date) setShowCalPicker(true) }}
+          />
         )}
 
         {viewMode === 'list' && (
