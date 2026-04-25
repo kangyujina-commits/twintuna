@@ -127,6 +127,7 @@ interface RecordModalProps {
   visible: boolean; type: RecordType | null
   initialValue?: string; initialNote?: string; initialVet?: string
   initialMealType?: MealType; initialPhotoUri?: string
+  initialExtraFields?: { label: string; value: string }[]
   isEdit: boolean
   onSave: (d: { value: string; note: string; vet: string; mealType: MealType; photoUri: string; extraFields: { label: string; value: string }[] }) => void
   onClose: () => void
@@ -136,6 +137,7 @@ function RecordModal({
   visible, type,
   initialValue = '', initialNote = '', initialVet = '',
   initialMealType = '건식', initialPhotoUri = '',
+  initialExtraFields = [],
   isEdit, onSave, onClose,
 }: RecordModalProps) {
   const [value,    setValue]    = useState(initialValue)
@@ -143,7 +145,7 @@ function RecordModal({
   const [vet,      setVet]      = useState(initialVet)
   const [mealType, setMealType] = useState<MealType>(initialMealType)
   const [photoUri, setPhotoUri] = useState(initialPhotoUri)
-  const [extraFields, setExtraFields] = useState<{ label: string; value: string }[]>([])
+  const [extraFields, setExtraFields] = useState<{ label: string; value: string }[]>(initialExtraFields)
   const [newFieldLabel, setNewFieldLabel] = useState('')
   const [newFieldValue, setNewFieldValue] = useState('')
   const { colors: c } = useTheme()
@@ -152,7 +154,7 @@ function RecordModal({
   function sync() {
     setValue(initialValue); setNote(initialNote); setVet(initialVet)
     setMealType(initialMealType); setPhotoUri(initialPhotoUri)
-    setExtraFields([]); setNewFieldLabel(''); setNewFieldValue('')
+    setExtraFields(initialExtraFields); setNewFieldLabel(''); setNewFieldValue('')
   }
 
   async function pickPhoto() {
@@ -500,6 +502,9 @@ export default function DiaryScreen() {
                             {r.value !== undefined && <Text style={styles.recordValue}>{r.value} {r.meal_type === '물' ? 'ml' : cfg.valueUnit}</Text>}
                             {r.note      && <Text style={styles.recordNote}>{r.note}</Text>}
                             {r.vet_name  && <Text style={styles.recordNote}>담당: {r.vet_name}</Text>}
+                            {r.extra_fields?.map((f, i) => (
+                              <Text key={i} style={styles.recordNote}>{f.label}: {f.value}</Text>
+                            ))}
                             {r.photo_uri && <Image source={{ uri: r.photo_uri }} style={styles.recordThumb} />}
                           </View>
                           <Text style={styles.tapHint}>•••</Text>
@@ -657,6 +662,7 @@ export default function DiaryScreen() {
         initialValue={editRecord?.value !== undefined ? String(editRecord.value) : ''}
         initialNote={editRecord?.note ?? ''} initialVet={editRecord?.vet_name ?? ''}
         initialMealType={editRecord?.meal_type ?? '건식'} initialPhotoUri={editRecord?.photo_uri ?? ''}
+        initialExtraFields={editRecord?.extra_fields ?? []}
         isEdit onSave={handleEditSave} onClose={() => setEditRecord(null)}
       />
       <OptionsModal visible={showOptions} onEdit={startEdit} onDelete={confirmDelete} onClose={() => setShowOptions(false)} />

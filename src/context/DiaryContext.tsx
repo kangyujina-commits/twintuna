@@ -14,6 +14,7 @@ export interface DiaryRecord {
   vet_name?: string
   meal_type?: MealType
   photo_uri?: string
+  extra_fields?: { label: string; value: string }[]
 }
 
 export interface VaccineItem {
