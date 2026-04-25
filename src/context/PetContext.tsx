@@ -21,6 +21,8 @@ interface PetContextValue {
   deletePet: (id: string) => void
   pet: PetProfile
   setPet: (updater: PetProfile | ((prev: PetProfile) => PetProfile)) => void
+  onboarded: boolean
+  completeOnboarding: () => void
 }
 
 const DEFAULT_PET: PetProfile = {
@@ -32,25 +34,29 @@ const DEFAULT_PET: PetProfile = {
   weight: '4.2',
 }
 
-const STORAGE_PETS_KEY   = '@twintuna:pets'
-const STORAGE_ACTIVE_KEY = '@twintuna:activePetId'
+const STORAGE_PETS_KEY      = '@twintuna:pets'
+const STORAGE_ACTIVE_KEY    = '@twintuna:activePetId'
+const STORAGE_ONBOARDED_KEY = '@twintuna:onboarded'
 
 const PetContext = createContext<PetContextValue | null>(null)
 
 export function PetProvider({ children }: { children: ReactNode }) {
   const [pets, setPets]               = useState<PetProfile[]>([DEFAULT_PET])
   const [activePetId, setActivePetId] = useState(DEFAULT_PET.id)
+  const [onboarded, setOnboarded]     = useState(false)
   const [loaded, setLoaded]           = useState(false)
 
   // 불러오기
   useEffect(() => {
     async function load() {
-      const [petsJson, activeId] = await Promise.all([
+      const [petsJson, activeId, onboardedVal] = await Promise.all([
         AsyncStorage.getItem(STORAGE_PETS_KEY),
         AsyncStorage.getItem(STORAGE_ACTIVE_KEY),
+        AsyncStorage.getItem(STORAGE_ONBOARDED_KEY),
       ])
       if (petsJson) setPets(JSON.parse(petsJson))
       if (activeId) setActivePetId(activeId)
+      if (onboardedVal === 'true') setOnboarded(true)
       setLoaded(true)
     }
     load()
@@ -85,6 +91,11 @@ export function PetProvider({ children }: { children: ReactNode }) {
     if (activePetId === id && next[0]) setActivePetId(next[0].id)
   }
 
+  function completeOnboarding() {
+    setOnboarded(true)
+    AsyncStorage.setItem(STORAGE_ONBOARDED_KEY, 'true')
+  }
+
   const pet = activePet
   function setPet(updater: PetProfile | ((prev: PetProfile) => PetProfile)) {
     const updated = typeof updater === 'function' ? updater(activePet) : updater
@@ -96,7 +107,7 @@ export function PetProvider({ children }: { children: ReactNode }) {
   return (
     <PetContext.Provider value={{
       pets, activePetId, activePet, setActivePetId, addPet, updateActivePet, deletePet,
-      pet, setPet,
+      pet, setPet, onboarded, completeOnboarding,
     }}>
       {children}
     </PetContext.Provider>

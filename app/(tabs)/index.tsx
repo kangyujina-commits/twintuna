@@ -7,6 +7,7 @@ import { useDiary } from '../../src/context/DiaryContext'
 import { RecordType } from '../../src/types'
 import { PetProfile } from '../../src/context/PetContext'
 import { useTheme, Colors } from '../../src/context/ThemeContext'
+import { WeightChart } from '../../src/components/WeightChart'
 
 const TYPE_LABELS: Record<RecordType, string> = {
   weight: '체중', meal: '식사', symptom: '증상',
@@ -38,7 +39,8 @@ export default function HomeScreen() {
   const router      = useRouter()
   const { colors: c } = useTheme()
   const styles = useMemo(() => getStyles(c), [c])
-  const [showAddVax, setShowAddVax] = useState(false)
+  const [showAddVax, setShowAddVax]   = useState(false)
+  const [showChart,  setShowChart]    = useState(false)
 
   const today     = todayStr()
   const todayRecs = records.filter((r) => r.petId === pet.id && r.date === today)
@@ -60,6 +62,27 @@ export default function HomeScreen() {
     })
     .filter((v) => v.daysUntil <= 3)
     .sort((a, b) => a.daysUntil - b.daysUntil)
+
+  // 체중 차트 데이터 (최근 10개, 오래된 순)
+  const chartData = weightRecs
+    .slice(0, 10)
+    .reverse()
+    .map((r) => ({ date: r.date, value: r.value! }))
+
+  // 이번 달 건강 리포트
+  const thisMonth = today.slice(0, 7) // YYYY-MM
+  const monthRecs = records.filter((r) => r.petId === pet.id && r.date.startsWith(thisMonth))
+  const monthReport = {
+    total:    monthRecs.length,
+    hospital: monthRecs.filter((r) => r.type === 'hospital').length,
+    symptom:  monthRecs.filter((r) => r.type === 'symptom').length,
+    wChange:  (() => {
+      const mw = monthRecs.filter((r) => r.type === 'weight' && r.value !== undefined)
+        .sort((a, b) => a.date.localeCompare(b.date))
+      if (mw.length < 2) return null
+      return +(mw[mw.length - 1].value! - mw[0].value!).toFixed(2)
+    })(),
+  }
 
   // 다가오는 일정 (D-4 이후)
   const upcomingVaccines = vaccines
@@ -115,23 +138,33 @@ export default function HomeScreen() {
         {/* 체중 트렌드 */}
         {latestW && (
           <View style={styles.weightCard}>
-            <Text style={styles.weightIcon}>⚖️</Text>
-            <View style={styles.weightInfo}>
-              <Text style={styles.weightLabel}>최근 체중</Text>
-              <Text style={styles.weightValue}>{latestW.value} kg</Text>
-              <Text style={styles.weightDate}>{latestW.date}</Text>
+            <View style={styles.weightCardTop}>
+              <Text style={styles.weightIcon}>⚖️</Text>
+              <View style={styles.weightInfo}>
+                <Text style={styles.weightLabel}>최근 체중</Text>
+                <Text style={styles.weightValue}>{latestW.value} kg</Text>
+                <Text style={styles.weightDate}>{latestW.date}</Text>
+              </View>
+              {wDiff !== null && wDiff !== 0 && (
+                <View style={[styles.wDiffBadge, wDiff > 0 ? styles.wDiffUp : styles.wDiffDown]}>
+                  <Text style={[styles.wDiffText, wDiff > 0 ? styles.wDiffTextUp : styles.wDiffTextDown]}>
+                    {wDiff > 0 ? '▲' : '▼'} {Math.abs(wDiff)} kg
+                  </Text>
+                </View>
+              )}
+              {wDiff === 0 && (
+                <View style={styles.wDiffStable}>
+                  <Text style={styles.wDiffTextStable}>— 유지</Text>
+                </View>
+              )}
+              {chartData.length >= 2 && (
+                <TouchableOpacity style={styles.chartToggleBtn} onPress={() => setShowChart((v) => !v)}>
+                  <Text style={styles.chartToggleText}>{showChart ? '접기' : '📈 차트'}</Text>
+                </TouchableOpacity>
+              )}
             </View>
-            {wDiff !== null && wDiff !== 0 && (
-              <View style={[styles.wDiffBadge, wDiff > 0 ? styles.wDiffUp : styles.wDiffDown]}>
-                <Text style={[styles.wDiffText, wDiff > 0 ? styles.wDiffTextUp : styles.wDiffTextDown]}>
-                  {wDiff > 0 ? '▲' : '▼'} {Math.abs(wDiff)} kg
-                </Text>
-              </View>
-            )}
-            {wDiff === 0 && (
-              <View style={styles.wDiffStable}>
-                <Text style={styles.wDiffTextStable}>— 유지</Text>
-              </View>
+            {showChart && chartData.length >= 2 && (
+              <WeightChart data={chartData} />
             )}
           </View>
         )}
@@ -152,6 +185,40 @@ export default function HomeScreen() {
                 </View>
               </View>
             ))}
+          </>
+        )}
+
+        {/* 이번 달 건강 리포트 */}
+        {monthReport.total > 0 && (
+          <>
+            <View style={styles.sectionRow}>
+              <Text style={styles.sectionTitle}>📊 {thisMonth} 건강 리포트</Text>
+            </View>
+            <View style={styles.reportGrid}>
+              <View style={styles.reportCell}>
+                <Text style={styles.reportNum}>{monthReport.total}</Text>
+                <Text style={styles.reportLabel}>총 기록</Text>
+              </View>
+              <View style={styles.reportCell}>
+                <Text style={styles.reportNum}>{monthReport.hospital}</Text>
+                <Text style={styles.reportLabel}>병원 방문</Text>
+              </View>
+              <View style={styles.reportCell}>
+                <Text style={styles.reportNum}>{monthReport.symptom}</Text>
+                <Text style={styles.reportLabel}>증상 기록</Text>
+              </View>
+              <View style={styles.reportCell}>
+                <Text style={[styles.reportNum,
+                  monthReport.wChange === null ? {} :
+                  monthReport.wChange > 0 ? styles.wDiffTextUp : styles.wDiffTextDown
+                ]}>
+                  {monthReport.wChange === null
+                    ? '—'
+                    : `${monthReport.wChange > 0 ? '+' : ''}${monthReport.wChange} kg`}
+                </Text>
+                <Text style={styles.reportLabel}>체중 변화</Text>
+              </View>
+            </View>
           </>
         )}
 
@@ -318,9 +385,9 @@ function getStyles(c: Colors) {
     sectionAddText: { fontSize: 12, fontWeight: '700', color: '#1A73E8' },
     weightCard: {
       backgroundColor: c.card, borderRadius: 14, padding: 14,
-      flexDirection: 'row', alignItems: 'center', gap: 12,
       shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 1,
     },
+    weightCardTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
     weightIcon: { fontSize: 26 },
     weightInfo: { flex: 1 },
     weightLabel: { fontSize: 11, color: c.textFaint, fontWeight: '600' },
@@ -334,6 +401,18 @@ function getStyles(c: Colors) {
     wDiffTextDown: { color: '#059669' },
     wDiffStable: { backgroundColor: '#F3F4F6', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 5 },
     wDiffTextStable: { fontSize: 12, color: '#6B7280', fontWeight: '600' },
+    chartToggleBtn: { backgroundColor: '#EFF6FF', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 },
+    chartToggleText: { fontSize: 12, fontWeight: '700', color: '#1A73E8' },
+    reportGrid: {
+      flexDirection: 'row', flexWrap: 'wrap', gap: 8,
+    },
+    reportCell: {
+      flex: 1, minWidth: '45%', backgroundColor: c.card, borderRadius: 14, padding: 16,
+      alignItems: 'center', gap: 4,
+      shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 1,
+    },
+    reportNum: { fontSize: 22, fontWeight: '800', color: c.text },
+    reportLabel: { fontSize: 11, color: c.textFaint, fontWeight: '600' },
     todoRow: {
       backgroundColor: '#FFF7ED', borderRadius: 12, padding: 14,
       flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
