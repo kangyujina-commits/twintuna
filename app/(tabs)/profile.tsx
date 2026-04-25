@@ -336,6 +336,8 @@ export default function ProfileScreen() {
                 <View style={styles.statsRow}>
                   <StatItem label="나이"  value={getAge(activePet.birth_date)} styles={styles} />
                   <View style={styles.statDivider} />
+                  <StatItem label="생일"  value={activePet.birth_date || '미입력'} styles={styles} />
+                  <View style={styles.statDivider} />
                   <StatItem label="체중"  value={`${activePet.weight} kg`} styles={styles} />
                   <View style={styles.statDivider} />
                   <StatItem label="종"    value={activePet.species} styles={styles} />
