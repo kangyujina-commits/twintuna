@@ -1,14 +1,14 @@
 import { useState, useMemo } from 'react'
 import {
   View, Text, StyleSheet, TouchableOpacity, TextInput,
-  KeyboardAvoidingView, Platform, ScrollView,
+  KeyboardAvoidingView, Platform, ScrollView, Image,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useRouter } from 'expo-router'
-import { usePet } from '../src/context/PetContext'
+import { usePet, PetProfile } from '../src/context/PetContext'
 import { useTheme, Colors } from '../src/context/ThemeContext'
 
-type Step = 'welcome' | 'species' | 'details'
+type Step = 'welcome' | 'select' | 'species' | 'details'
 
 function formatDateInput(raw: string): string {
   const digits = raw.replace(/\D/g, '').slice(0, 8)
@@ -18,7 +18,7 @@ function formatDateInput(raw: string): string {
 }
 
 export default function OnboardingScreen() {
-  const { pet, setPet, completeOnboarding } = usePet()
+  const { pets, setActivePetId, addPet, completeOnboarding } = usePet()
   const router = useRouter()
   const { colors: c } = useTheme()
   const styles = useMemo(() => getStyles(c), [c])
@@ -30,19 +30,25 @@ export default function OnboardingScreen() {
   const [birth, setBirth]     = useState('')
   const [weight, setWeight]   = useState('')
 
-  function handleFinish() {
-    setPet((prev) => ({
-      ...prev,
-      species,
-      name:       name.trim()   || prev.name,
-      breed:      breed.trim()  || prev.breed,
-      birth_date: birth.trim()  || prev.birth_date,
-      weight:     weight.trim() || prev.weight,
-    }))
+  function selectExisting(pet: PetProfile) {
+    setActivePetId(pet.id)
     completeOnboarding()
     router.replace('/(tabs)')
   }
 
+  function handleFinish() {
+    addPet({
+      species,
+      name:       name.trim(),
+      breed:      breed.trim(),
+      birth_date: birth.trim(),
+      weight:     weight.trim(),
+    })
+    completeOnboarding()
+    router.replace('/(tabs)')
+  }
+
+  // ── 웰컴
   if (step === 'welcome') {
     return (
       <SafeAreaView style={styles.safe}>
@@ -59,7 +65,7 @@ export default function OnboardingScreen() {
               </View>
             ))}
           </View>
-          <TouchableOpacity style={styles.primaryBtn} onPress={() => setStep('species')}>
+          <TouchableOpacity style={styles.primaryBtn} onPress={() => setStep('select')}>
             <Text style={styles.primaryBtnText}>시작하기 →</Text>
           </TouchableOpacity>
         </View>
@@ -67,6 +73,42 @@ export default function OnboardingScreen() {
     )
   }
 
+  // ── 기존 펫 선택
+  if (step === 'select') {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <ScrollView contentContainerStyle={styles.center}>
+          <Text style={styles.title}>반려동물을 선택하세요</Text>
+          <Text style={styles.subtitle}>기존에 저장된 반려동물을 선택하거나{'\n'}새로 추가할 수 있어요</Text>
+
+          <View style={styles.petList}>
+            {pets.map((p) => (
+              <TouchableOpacity key={p.id} style={styles.petSelectCard} onPress={() => selectExisting(p)}>
+                <View style={styles.petSelectAvatar}>
+                  {p.avatar_uri
+                    ? <Image source={{ uri: p.avatar_uri }} style={styles.petSelectAvatarImg} />
+                    : <Text style={styles.petSelectEmoji}>{p.species === '고양이' ? '🐱' : '🐶'}</Text>
+                  }
+                </View>
+                <View style={styles.petSelectInfo}>
+                  <Text style={styles.petSelectName}>{p.name}</Text>
+                  <Text style={styles.petSelectSub}>{p.species}  ·  {p.breed || '품종 미입력'}</Text>
+                  {p.weight ? <Text style={styles.petSelectSub}>{p.weight} kg</Text> : null}
+                </View>
+                <Text style={styles.petSelectArrow}>→</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          <TouchableOpacity style={styles.addNewBtn} onPress={() => setStep('species')}>
+            <Text style={styles.addNewBtnText}>+ 새 반려동물 추가</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </SafeAreaView>
+    )
+  }
+
+  // ── 종 선택
   if (step === 'species') {
     return (
       <SafeAreaView style={styles.safe}>
@@ -89,14 +131,20 @@ export default function OnboardingScreen() {
               <Text style={[styles.speciesLabel, species === '강아지' && styles.speciesLabelActive]}>강아지</Text>
             </TouchableOpacity>
           </View>
-          <TouchableOpacity style={styles.primaryBtn} onPress={() => setStep('details')}>
-            <Text style={styles.primaryBtnText}>다음 →</Text>
-          </TouchableOpacity>
+          <View style={styles.btnRow}>
+            <TouchableOpacity style={styles.backBtn} onPress={() => setStep('select')}>
+              <Text style={styles.backBtnText}>← 이전</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.primaryBtn, { flex: 1, marginTop: 0 }]} onPress={() => setStep('details')}>
+              <Text style={styles.primaryBtnText}>다음 →</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </SafeAreaView>
     )
   }
 
+  // ── 펫 정보 입력
   return (
     <SafeAreaView style={styles.safe}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
@@ -158,7 +206,7 @@ export default function OnboardingScreen() {
 function getStyles(c: Colors) {
   return StyleSheet.create({
     safe: { flex: 1, backgroundColor: c.bg },
-    center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 16 },
+    center: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 16 },
     formContent: { padding: 32, gap: 8 },
     logo: { fontSize: 64 },
     title: { fontSize: 24, fontWeight: '800', color: c.text, textAlign: 'center' },
@@ -173,6 +221,29 @@ function getStyles(c: Colors) {
     },
     primaryBtnDisabled: { backgroundColor: c.border },
     primaryBtnText: { fontSize: 16, fontWeight: '800', color: '#FFF' },
+    petList: { width: '100%', gap: 10 },
+    petSelectCard: {
+      flexDirection: 'row', alignItems: 'center', gap: 14,
+      backgroundColor: c.card, borderRadius: 16, padding: 16,
+      borderWidth: 1.5, borderColor: c.border,
+      shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
+    },
+    petSelectAvatar: {
+      width: 52, height: 52, borderRadius: 26,
+      backgroundColor: '#EEF2FF', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
+    },
+    petSelectAvatarImg: { width: 52, height: 52, resizeMode: 'cover' },
+    petSelectEmoji: { fontSize: 28 },
+    petSelectInfo: { flex: 1 },
+    petSelectName: { fontSize: 17, fontWeight: '700', color: c.text },
+    petSelectSub: { fontSize: 12, color: c.textMuted, marginTop: 2 },
+    petSelectArrow: { fontSize: 18, color: c.textFaint },
+    addNewBtn: {
+      width: '100%', borderRadius: 14, paddingVertical: 16, alignItems: 'center',
+      borderWidth: 2, borderColor: '#1A73E8', borderStyle: 'dashed',
+      marginTop: 4,
+    },
+    addNewBtnText: { fontSize: 15, fontWeight: '700', color: '#1A73E8' },
     speciesRow: { flexDirection: 'row', gap: 16, marginVertical: 8 },
     speciesCard: {
       flex: 1, backgroundColor: c.card, borderRadius: 20, padding: 24,
