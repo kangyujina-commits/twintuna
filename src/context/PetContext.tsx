@@ -19,7 +19,6 @@ interface PetContextValue {
   addPet: (pet: Omit<PetProfile, 'id'>) => void
   updateActivePet: (pet: PetProfile) => void
   deletePet: (id: string) => void
-  // backward compat
   pet: PetProfile
   setPet: (updater: PetProfile | ((prev: PetProfile) => PetProfile)) => void
 }
@@ -33,43 +32,40 @@ const DEFAULT_PET: PetProfile = {
   weight: '4.2',
 }
 
-const STORAGE_PETS_KEY      = '@twintuna:pets'
-const STORAGE_ACTIVE_KEY    = '@twintuna:activePetId'
+const STORAGE_PETS_KEY   = '@twintuna:pets'
+const STORAGE_ACTIVE_KEY = '@twintuna:activePetId'
 
 const PetContext = createContext<PetContextValue | null>(null)
 
 export function PetProvider({ children }: { children: ReactNode }) {
-  const [pets, setPetsState]               = useState<PetProfile[]>([DEFAULT_PET])
-  const [activePetId, setActivePetIdState] = useState(DEFAULT_PET.id)
-  const [loaded, setLoaded]                = useState(false)
+  const [pets, setPets]               = useState<PetProfile[]>([DEFAULT_PET])
+  const [activePetId, setActivePetId] = useState(DEFAULT_PET.id)
+  const [loaded, setLoaded]           = useState(false)
 
-  // 앱 시작 시 저장된 데이터 불러오기
+  // 불러오기
   useEffect(() => {
     async function load() {
       const [petsJson, activeId] = await Promise.all([
         AsyncStorage.getItem(STORAGE_PETS_KEY),
         AsyncStorage.getItem(STORAGE_ACTIVE_KEY),
       ])
-      if (petsJson) setPetsState(JSON.parse(petsJson))
-      if (activeId)  setActivePetIdState(activeId)
+      if (petsJson) setPets(JSON.parse(petsJson))
+      if (activeId) setActivePetId(activeId)
       setLoaded(true)
     }
     load()
   }, [])
 
-  // pets 변경 시 저장
-  function setPets(updater: PetProfile[] | ((prev: PetProfile[]) => PetProfile[])) {
-    setPetsState((prev) => {
-      const next = typeof updater === 'function' ? updater(prev) : updater
-      AsyncStorage.setItem(STORAGE_PETS_KEY, JSON.stringify(next))
-      return next
-    })
-  }
+  // 상태 변경 시 저장
+  useEffect(() => {
+    if (!loaded) return
+    AsyncStorage.setItem(STORAGE_PETS_KEY, JSON.stringify(pets))
+  }, [pets, loaded])
 
-  function setActivePetId(id: string) {
-    setActivePetIdState(id)
-    AsyncStorage.setItem(STORAGE_ACTIVE_KEY, id)
-  }
+  useEffect(() => {
+    if (!loaded) return
+    AsyncStorage.setItem(STORAGE_ACTIVE_KEY, activePetId)
+  }, [activePetId, loaded])
 
   const activePet = pets.find((p) => p.id === activePetId) ?? pets[0]
 
@@ -86,12 +82,9 @@ export function PetProvider({ children }: { children: ReactNode }) {
   function deletePet(id: string) {
     const next = pets.filter((p) => p.id !== id)
     setPets(next)
-    if (activePetId === id && next[0]) {
-      setActivePetId(next[0].id)
-    }
+    if (activePetId === id && next[0]) setActivePetId(next[0].id)
   }
 
-  // backward compat
   const pet = activePet
   function setPet(updater: PetProfile | ((prev: PetProfile) => PetProfile)) {
     const updated = typeof updater === 'function' ? updater(activePet) : updater
