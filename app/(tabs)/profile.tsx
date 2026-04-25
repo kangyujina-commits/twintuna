@@ -8,6 +8,13 @@ import * as ImagePicker from 'expo-image-picker'
 import { usePet, PetProfile } from '../../src/context/PetContext'
 import { useDiary, VaccineItem } from '../../src/context/DiaryContext'
 
+function formatDateInput(raw: string): string {
+  const digits = raw.replace(/\D/g, '').slice(0, 8)
+  if (digits.length <= 4) return digits
+  if (digits.length <= 6) return `${digits.slice(0, 4)}-${digits.slice(4)}`
+  return `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6)}`
+}
+
 function getAge(birthDate: string) {
   const birth = new Date(birthDate)
   if (isNaN(birth.getTime())) return '날짜 오류'
@@ -58,11 +65,11 @@ function VaccineModal({ visible, initial, onSave, onClose }: VaccineModalProps) 
           </View>
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>마지막 접종일 (선택)</Text>
-            <TextInput style={styles.input} value={lastDate} onChangeText={setLastDate} placeholder="YYYY-MM-DD" keyboardType="numbers-and-punctuation" />
+            <TextInput style={styles.input} value={lastDate} onChangeText={(v) => setLastDate(formatDateInput(v))} placeholder="YYYY-MM-DD" keyboardType="number-pad" />
           </View>
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>다음 접종 예정일</Text>
-            <TextInput style={styles.input} value={nextDate} onChangeText={setNextDate} placeholder="YYYY-MM-DD" keyboardType="numbers-and-punctuation" />
+            <TextInput style={styles.input} value={nextDate} onChangeText={(v) => setNextDate(formatDateInput(v))} placeholder="YYYY-MM-DD" keyboardType="number-pad" />
           </View>
 
           <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
@@ -135,7 +142,7 @@ function AddPetModal({ visible, onSave, onClose }: AddPetModalProps) {
           </View>
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>생년월일</Text>
-            <TextInput style={styles.input} value={draft.birth_date} onChangeText={(v) => setDraft((d) => ({ ...d, birth_date: v }))} placeholder="YYYY-MM-DD" keyboardType="numbers-and-punctuation" />
+            <TextInput style={styles.input} value={draft.birth_date} onChangeText={(v) => setDraft((d) => ({ ...d, birth_date: formatDateInput(v) }))} placeholder="YYYY-MM-DD" keyboardType="number-pad" />
           </View>
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>체중 (kg)</Text>
@@ -281,7 +288,7 @@ export default function ProfileScreen() {
                   <TextInput style={styles.input} value={draft.breed} onChangeText={(v) => setDraft((d) => ({ ...d, breed: v }))} placeholder="예: 코리안 숏헤어" />
                 </Field>
                 <Field label="생년월일">
-                  <TextInput style={styles.input} value={draft.birth_date} onChangeText={(v) => setDraft((d) => ({ ...d, birth_date: v }))} placeholder="YYYY-MM-DD" keyboardType="numbers-and-punctuation" />
+                  <TextInput style={styles.input} value={draft.birth_date} onChangeText={(v) => setDraft((d) => ({ ...d, birth_date: formatDateInput(v) }))} placeholder="YYYY-MM-DD" keyboardType="number-pad" />
                 </Field>
                 <Field label="체중 (kg)">
                   <TextInput style={styles.input} value={draft.weight} onChangeText={(v) => setDraft((d) => ({ ...d, weight: v }))} placeholder="예: 4.2" keyboardType="decimal-pad" />
