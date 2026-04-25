@@ -63,7 +63,6 @@ export default function TabLayout() {
         name="diary"
         options={{
           title: '일지',
-          headerTitle: '건강 일지',
           tabBarIcon: ({ focused }) => <TabIcon emoji="📋" focused={focused} />,
         }}
       />
@@ -71,7 +70,6 @@ export default function TabLayout() {
         name="knowledge"
         options={{
           title: '상식',
-          headerTitle: '반려동물 상식',
           tabBarIcon: ({ focused }) => <TabIcon emoji="📚" focused={focused} />,
         }}
       />
@@ -79,7 +77,6 @@ export default function TabLayout() {
         name="profile"
         options={{
           title: '프로필',
-          headerTitle: '반려동물 프로필',
           tabBarIcon: ({ focused }) => <TabIcon emoji="🐾" focused={focused} />,
         }}
       />
