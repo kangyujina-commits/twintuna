@@ -304,10 +304,34 @@ export default function DiaryScreen() {
   const [showExportModal, setShowExportModal] = useState(false)
   const [exportPeriod,    setExportPeriod]   = useState<Period>('1개월')
   const [exporting,       setExporting]      = useState(false)
+  const [searchQuery,     setSearchQuery]    = useState('')
+  const [typeFilter,      setTypeFilter]     = useState<RecordType | 'all'>('all')
+  const [dateFilter,      setDateFilter]     = useState<Period | '전체'>('전체')
 
-  const displayRecords = viewMode === 'calendar' && selectedDate
-    ? records.filter((r) => r.date === selectedDate)
-    : records
+  const displayRecords = useMemo(() => {
+    let result = viewMode === 'calendar' && selectedDate
+      ? records.filter((r) => r.date === selectedDate)
+      : records
+
+    if (viewMode === 'list') {
+      if (typeFilter !== 'all')
+        result = result.filter((r) => r.type === typeFilter)
+      if (dateFilter !== '전체') {
+        const { from, to } = getDateRange(dateFilter as Period)
+        result = result.filter((r) => r.date >= from && r.date <= to)
+      }
+      if (searchQuery.trim()) {
+        const q = searchQuery.trim().toLowerCase()
+        result = result.filter((r) =>
+          RECORD_TYPES.find((t) => t.type === r.type)!.label.includes(q) ||
+          r.note?.toLowerCase().includes(q) ||
+          r.vet_name?.toLowerCase().includes(q) ||
+          r.extra_fields?.some((f) => f.label.toLowerCase().includes(q) || f.value.toLowerCase().includes(q))
+        )
+      }
+    }
+    return result
+  }, [records, viewMode, selectedDate, typeFilter, dateFilter, searchQuery])
 
   function buildRecord(type: RecordType, data: { value: string; note: string; vet: string; mealType: MealType; photoUri: string; extraFields: { label: string; value: string }[] }): Omit<DiaryRecord, 'id'> | null {
     const cfg = TYPE_CONFIG[type]
@@ -456,6 +480,62 @@ export default function DiaryScreen() {
 
         {viewMode === 'calendar' && (
           <CalendarView records={records} selectedDate={selectedDate} onSelectDate={setSelectedDate} />
+        )}
+
+        {viewMode === 'list' && (
+          <>
+            {/* 검색바 */}
+            <View style={styles.searchRow}>
+              <Text style={styles.searchIcon}>🔍</Text>
+              <TextInput
+                style={styles.searchInput}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                placeholder="증상, 메모, 병원명 검색..."
+                placeholderTextColor={c.textFaint}
+              />
+              {searchQuery.length > 0 && (
+                <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.searchClear}>
+                  <Text style={styles.searchClearText}>✕</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {/* 타입 필터 */}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <View style={styles.typeFilterRow}>
+                <TouchableOpacity
+                  style={[styles.typeFilterChip, typeFilter === 'all' && styles.typeFilterChipActive]}
+                  onPress={() => setTypeFilter('all')}
+                >
+                  <Text style={[styles.typeFilterText, typeFilter === 'all' && styles.typeFilterTextActive]}>전체</Text>
+                </TouchableOpacity>
+                {RECORD_TYPES.map((t) => (
+                  <TouchableOpacity
+                    key={t.type}
+                    style={[styles.typeFilterChip, typeFilter === t.type && styles.typeFilterChipActive]}
+                    onPress={() => setTypeFilter(typeFilter === t.type ? 'all' : t.type)}
+                  >
+                    <Text style={styles.typeFilterEmoji}>{t.emoji}</Text>
+                    <Text style={[styles.typeFilterText, typeFilter === t.type && styles.typeFilterTextActive]}>{t.label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </ScrollView>
+
+            {/* 날짜 범위 필터 */}
+            <View style={styles.dateFilterRow}>
+              {(['전체', '1주', '1개월', '3개월'] as const).map((d) => (
+                <TouchableOpacity
+                  key={d}
+                  style={[styles.dateFilterBtn, dateFilter === d && styles.dateFilterBtnActive]}
+                  onPress={() => setDateFilter(d)}
+                >
+                  <Text style={[styles.dateFilterText, dateFilter === d && styles.dateFilterTextActive]}>{d}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </>
         )}
 
         {viewMode === 'calendar' && !selectedDate ? (
@@ -784,6 +864,30 @@ function getStyles(c: Colors) {
     photoPreview: { width: 64, height: 64, borderRadius: 10 },
     photoRemove: { position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: 10, backgroundColor: '#EF4444', alignItems: 'center', justifyContent: 'center' },
     photoRemoveText: { color: '#FFF', fontSize: 10, fontWeight: '700' },
+    searchRow: {
+      flexDirection: 'row', alignItems: 'center', gap: 8,
+      backgroundColor: c.inputBg, borderRadius: 12,
+      borderWidth: 1, borderColor: c.border, paddingHorizontal: 12, height: 42,
+    },
+    searchIcon: { fontSize: 14 },
+    searchInput: { flex: 1, fontSize: 14, color: c.text },
+    searchClear: { padding: 4 },
+    searchClearText: { fontSize: 13, color: c.textFaint, fontWeight: '700' },
+    typeFilterRow: { flexDirection: 'row', gap: 8, paddingVertical: 2 },
+    typeFilterChip: {
+      flexDirection: 'row', alignItems: 'center', gap: 4,
+      paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20,
+      backgroundColor: c.chip, borderWidth: 1.5, borderColor: 'transparent',
+    },
+    typeFilterChipActive: { backgroundColor: '#EFF6FF', borderColor: '#1A73E8' },
+    typeFilterEmoji: { fontSize: 12 },
+    typeFilterText: { fontSize: 12, fontWeight: '600', color: c.textMuted },
+    typeFilterTextActive: { color: '#1A73E8' },
+    dateFilterRow: { flexDirection: 'row', gap: 8 },
+    dateFilterBtn: { flex: 1, paddingVertical: 8, borderRadius: 10, backgroundColor: c.chip, alignItems: 'center' },
+    dateFilterBtnActive: { backgroundColor: '#1A73E8' },
+    dateFilterText: { fontSize: 12, fontWeight: '600', color: c.textMuted },
+    dateFilterTextActive: { color: '#FFFFFF' },
     actionRow: { flexDirection: 'row', gap: 10 },
     actionBtn: { flex: 1, borderRadius: 14, paddingVertical: 14, alignItems: 'center', gap: 4 },
     actionBtnEmoji: { fontSize: 22 },

@@ -40,9 +40,28 @@ export default function HomeScreen() {
   const styles = useMemo(() => getStyles(c), [c])
   const [showAddVax, setShowAddVax] = useState(false)
 
-  const today      = todayStr()
-  const todayRecs  = records.filter((r) => r.petId === pet.id && r.date === today)
+  const today     = todayStr()
+  const todayRecs = records.filter((r) => r.petId === pet.id && r.date === today)
 
+  // 체중 트렌드
+  const weightRecs = records
+    .filter((r) => r.petId === pet.id && r.type === 'weight' && r.value !== undefined)
+    .sort((a, b) => b.date.localeCompare(a.date))
+  const latestW = weightRecs[0]
+  const prevW   = weightRecs[1]
+  const wDiff   = latestW && prevW ? +(latestW.value! - prevW.value!).toFixed(2) : null
+
+  // 오늘 할 일: 기한 초과 + D-3 이내
+  const todoItems = vaccines
+    .filter((v) => v.petId === pet.id)
+    .map((v) => {
+      const daysUntil = Math.ceil((new Date(v.next_date).getTime() - new Date(today).getTime()) / 86400000)
+      return { ...v, daysUntil }
+    })
+    .filter((v) => v.daysUntil <= 3)
+    .sort((a, b) => a.daysUntil - b.daysUntil)
+
+  // 다가오는 일정 (D-4 이후)
   const upcomingVaccines = vaccines
     .filter((v) => v.petId === pet.id && v.next_date >= today)
     .sort((a, b) => a.next_date.localeCompare(b.next_date))
@@ -92,6 +111,49 @@ export default function HomeScreen() {
             <Text style={styles.petSub}>{pet.breed}  ·  {pet.weight} kg</Text>
           </View>
         </View>
+
+        {/* 체중 트렌드 */}
+        {latestW && (
+          <View style={styles.weightCard}>
+            <Text style={styles.weightIcon}>⚖️</Text>
+            <View style={styles.weightInfo}>
+              <Text style={styles.weightLabel}>최근 체중</Text>
+              <Text style={styles.weightValue}>{latestW.value} kg</Text>
+              <Text style={styles.weightDate}>{latestW.date}</Text>
+            </View>
+            {wDiff !== null && wDiff !== 0 && (
+              <View style={[styles.wDiffBadge, wDiff > 0 ? styles.wDiffUp : styles.wDiffDown]}>
+                <Text style={[styles.wDiffText, wDiff > 0 ? styles.wDiffTextUp : styles.wDiffTextDown]}>
+                  {wDiff > 0 ? '▲' : '▼'} {Math.abs(wDiff)} kg
+                </Text>
+              </View>
+            )}
+            {wDiff === 0 && (
+              <View style={styles.wDiffStable}>
+                <Text style={styles.wDiffTextStable}>— 유지</Text>
+              </View>
+            )}
+          </View>
+        )}
+
+        {/* 오늘 할 일 */}
+        {todoItems.length > 0 && (
+          <>
+            <View style={styles.sectionRow}>
+              <Text style={styles.sectionTitle}>🚨 오늘 할 일</Text>
+            </View>
+            {todoItems.map((v) => (
+              <View key={v.id} style={styles.todoRow}>
+                <Text style={styles.todoLabel}>{v.name}</Text>
+                <View style={[styles.todoBadge, v.daysUntil < 0 ? styles.todoBadgeOverdue : styles.todoBadgeUrgent]}>
+                  <Text style={styles.todoBadgeText}>
+                    {v.daysUntil < 0 ? `D+${Math.abs(v.daysUntil)} 초과` : v.daysUntil === 0 ? 'D-Day' : `D-${v.daysUntil}`}
+                  </Text>
+                </View>
+              </View>
+            ))}
+          </>
+        )}
 
         <View style={styles.sectionRow}>
           <Text style={styles.sectionTitle}>오늘의 기록</Text>
@@ -254,6 +316,35 @@ function getStyles(c: Colors) {
     sectionRow: { flexDirection: 'row', alignItems: 'center', marginTop: 12, marginBottom: 6 },
     sectionAddBtn: { marginLeft: 'auto', backgroundColor: '#EFF6FF', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 },
     sectionAddText: { fontSize: 12, fontWeight: '700', color: '#1A73E8' },
+    weightCard: {
+      backgroundColor: c.card, borderRadius: 14, padding: 14,
+      flexDirection: 'row', alignItems: 'center', gap: 12,
+      shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 1,
+    },
+    weightIcon: { fontSize: 26 },
+    weightInfo: { flex: 1 },
+    weightLabel: { fontSize: 11, color: c.textFaint, fontWeight: '600' },
+    weightValue: { fontSize: 20, fontWeight: '800', color: c.text, marginTop: 1 },
+    weightDate: { fontSize: 11, color: c.textFaint, marginTop: 1 },
+    wDiffBadge: { borderRadius: 10, paddingHorizontal: 10, paddingVertical: 5 },
+    wDiffUp: { backgroundColor: '#FEE2E2' },
+    wDiffDown: { backgroundColor: '#D1FAE5' },
+    wDiffText: { fontSize: 13, fontWeight: '700' },
+    wDiffTextUp: { color: '#DC2626' },
+    wDiffTextDown: { color: '#059669' },
+    wDiffStable: { backgroundColor: '#F3F4F6', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 5 },
+    wDiffTextStable: { fontSize: 12, color: '#6B7280', fontWeight: '600' },
+    todoRow: {
+      backgroundColor: '#FFF7ED', borderRadius: 12, padding: 14,
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      borderLeftWidth: 3, borderLeftColor: '#F97316',
+      shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 1,
+    },
+    todoLabel: { fontSize: 14, color: '#92400E', fontWeight: '600', flex: 1 },
+    todoBadge: { borderRadius: 8, paddingHorizontal: 10, paddingVertical: 3 },
+    todoBadgeUrgent: { backgroundColor: '#FED7AA' },
+    todoBadgeOverdue: { backgroundColor: '#FEE2E2' },
+    todoBadgeText: { fontSize: 12, fontWeight: '800', color: '#C2410C' },
     modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
     modalSheet: { backgroundColor: c.card, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 24, gap: 8 },
     modalTitle: { fontSize: 17, fontWeight: '800', color: c.text, marginBottom: 8, textAlign: 'center' },
