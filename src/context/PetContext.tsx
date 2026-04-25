@@ -84,14 +84,11 @@ export function PetProvider({ children }: { children: ReactNode }) {
   }
 
   function deletePet(id: string) {
-    setPets((prev) => {
-      const next = prev.filter((p) => p.id !== id)
-      if (activePetId === id) {
-        const fallback = next[0]
-        if (fallback) setActivePetId(fallback.id)
-      }
-      return next
-    })
+    const next = pets.filter((p) => p.id !== id)
+    setPets(next)
+    if (activePetId === id && next[0]) {
+      setActivePetId(next[0].id)
+    }
   }
 
   // backward compat
