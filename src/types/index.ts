@@ -1,7 +1,7 @@
 // ── 공통 타입
 export type Species = 'cat' | 'dog' | 'all'
 export type RecordType = 'weight' | 'meal' | 'symptom' | 'vaccine' | 'hospital' | 'medicine' | 'other'
-export type KnowledgeCategory = 'weight' | 'symptom' | 'nutrition' | 'equipment' | 'behavior'
+export type KnowledgeCategory = 'weight' | 'symptom' | 'nutrition' | 'equipment' | 'behavior' | 'safety'
 export type Urgency = 'normal' | 'watch' | 'emergency'
 
 // ── 반려동물
