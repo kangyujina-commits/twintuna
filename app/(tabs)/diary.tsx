@@ -10,6 +10,7 @@ import { useDiary, DiaryRecord, MealType } from '../../src/context/DiaryContext'
 import { usePet, PetProfile } from '../../src/context/PetContext'
 import { analyzeSymptomPhoto, analyzeSymptomText, analyzeSymptomBoth } from '../../src/lib/anthropic'
 import { useTheme, Colors } from '../../src/context/ThemeContext'
+import { exportReport, getDateRange, filterRecords, Period } from '../../src/lib/export'
 
 const RECORD_TYPES: { type: RecordType; emoji: string; label: string; color: string }[] = [
   { type: 'weight',   emoji: '⚖️',  label: '체중',   color: '#DBEAFE' },
@@ -293,11 +294,14 @@ export default function DiaryScreen() {
   const [editRecord,     setEditRecord]    = useState<DiaryRecord | null>(null)
   const [viewMode,       setViewMode]      = useState<'list' | 'calendar'>('list')
   const [selectedDate,   setSelectedDate]  = useState('')
-  const [showAiModal,    setShowAiModal]   = useState(false)
-  const [aiPhoto,        setAiPhoto]       = useState('')
-  const [aiText,         setAiText]        = useState('')
-  const [aiResult,       setAiResult]      = useState('')
-  const [aiLoading,      setAiLoading]     = useState(false)
+  const [showAiModal,     setShowAiModal]    = useState(false)
+  const [aiPhoto,         setAiPhoto]        = useState('')
+  const [aiText,          setAiText]         = useState('')
+  const [aiResult,        setAiResult]       = useState('')
+  const [aiLoading,       setAiLoading]      = useState(false)
+  const [showExportModal, setShowExportModal] = useState(false)
+  const [exportPeriod,    setExportPeriod]   = useState<Period>('1개월')
+  const [exporting,       setExporting]      = useState(false)
 
   const displayRecords = viewMode === 'calendar' && selectedDate
     ? records.filter((r) => r.date === selectedDate)
@@ -373,6 +377,18 @@ export default function DiaryScreen() {
     Alert.alert('저장 완료', '증상 기록이 일지에 저장되었어요.')
   }
 
+  async function runExport() {
+    setExporting(true)
+    try {
+      await exportReport(activePet, records, exportPeriod)
+      setShowExportModal(false)
+    } catch (e: any) {
+      Alert.alert('내보내기 실패', e.message ?? '오류가 발생했습니다.')
+    } finally {
+      setExporting(false)
+    }
+  }
+
   function handleRecordPress(r: DiaryRecord) { setSelectedRecord(r); setShowOptions(true) }
   function startEdit() { setShowOptions(false); setEditRecord(selectedRecord) }
   function confirmDelete() { setShowOptions(false); deleteRecord(selectedRecord!.id); setSelectedRecord(null) }
@@ -416,10 +432,16 @@ export default function DiaryScreen() {
           ))}
         </View>
 
-        <TouchableOpacity style={styles.aiBtn} onPress={() => { setAiPhoto(''); setAiText(''); setAiResult(''); setShowAiModal(true) }}>
-          <Text style={styles.aiBtnText}>🤖 AI 증상 분석</Text>
-          <Text style={styles.aiBtnSub}>사진으로 1차 체크</Text>
-        </TouchableOpacity>
+        <View style={styles.actionRow}>
+          <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#EDE9FE' }]} onPress={() => { setAiPhoto(''); setAiText(''); setAiResult(''); setShowAiModal(true) }}>
+            <Text style={styles.actionBtnEmoji}>🤖</Text>
+            <Text style={[styles.actionBtnText, { color: '#5B21B6' }]}>AI 증상 분석</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#DCFCE7' }]} onPress={() => setShowExportModal(true)}>
+            <Text style={styles.actionBtnEmoji}>📤</Text>
+            <Text style={[styles.actionBtnText, { color: '#166534' }]}>내보내기</Text>
+          </TouchableOpacity>
+        </View>
 
         <View style={styles.viewToggle}>
           <TouchableOpacity style={[styles.toggleBtn, viewMode === 'list' && styles.toggleBtnActive]} onPress={() => setViewMode('list')}>
@@ -579,6 +601,56 @@ export default function DiaryScreen() {
         </KeyboardAvoidingView>
       </Modal>
 
+      {/* 내보내기 모달 */}
+      <Modal visible={showExportModal} transparent animationType="slide" onRequestClose={() => setShowExportModal(false)}>
+        <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+          <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setShowExportModal(false)} />
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHeader}>
+              <View style={[styles.modalIcon, { backgroundColor: '#DCFCE7' }]}><Text style={{ fontSize: 22 }}>📤</Text></View>
+              <Text style={styles.modalTitle}>기록 내보내기</Text>
+              <TouchableOpacity onPress={() => setShowExportModal(false)}><Text style={styles.modalClose}>✕</Text></TouchableOpacity>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>기간 선택</Text>
+              <View style={styles.segmentRow}>
+                {(['1주', '1개월', '3개월', '전체'] as Period[]).map((p) => (
+                  <TouchableOpacity
+                    key={p}
+                    style={[styles.segmentBtn, exportPeriod === p && styles.segmentBtnActive]}
+                    onPress={() => setExportPeriod(p)}
+                  >
+                    <Text style={[styles.segmentText, exportPeriod === p && styles.segmentTextActive]}>{p}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            {(() => {
+              const { from, to } = getDateRange(exportPeriod)
+              const count = filterRecords(records, from, to).length
+              return (
+                <View style={styles.exportPreview}>
+                  <Text style={styles.exportPreviewText}>📅 {from} ~ {to}</Text>
+                  <Text style={styles.exportPreviewCount}>총 {count}건의 기록</Text>
+                </View>
+              )
+            })()}
+
+            <TouchableOpacity
+              style={[styles.saveBtn, exporting && styles.saveBtnDisabled]}
+              onPress={runExport}
+              disabled={exporting}
+            >
+              <Text style={styles.saveBtnText}>
+                {exporting ? '준비 중...' : Platform.OS === 'web' ? '📄 새 창에서 PDF 저장' : '📤 공유하기'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
       <RecordModal visible={addType !== null} type={addType} isEdit={false} onSave={handleAdd} onClose={() => setAddType(null)} />
       <RecordModal
         visible={editRecord !== null} type={editRecord?.type ?? null}
@@ -706,12 +778,15 @@ function getStyles(c: Colors) {
     photoPreview: { width: 64, height: 64, borderRadius: 10 },
     photoRemove: { position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: 10, backgroundColor: '#EF4444', alignItems: 'center', justifyContent: 'center' },
     photoRemoveText: { color: '#FFF', fontSize: 10, fontWeight: '700' },
-    aiBtn: {
-      flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-      backgroundColor: '#EDE9FE', borderRadius: 14, paddingVertical: 14, paddingHorizontal: 20,
+    actionRow: { flexDirection: 'row', gap: 10 },
+    actionBtn: { flex: 1, borderRadius: 14, paddingVertical: 14, alignItems: 'center', gap: 4 },
+    actionBtnEmoji: { fontSize: 22 },
+    actionBtnText: { fontSize: 13, fontWeight: '700' },
+    exportPreview: {
+      backgroundColor: c.chip, borderRadius: 12, padding: 14, gap: 4, alignItems: 'center',
     },
-    aiBtnText: { fontSize: 15, fontWeight: '700', color: '#5B21B6' },
-    aiBtnSub: { fontSize: 11, color: '#7C3AED', fontWeight: '500' },
+    exportPreviewText: { fontSize: 13, color: c.textMuted },
+    exportPreviewCount: { fontSize: 16, fontWeight: '700', color: c.text },
     aiResultBox: {
       backgroundColor: '#F5F3FF', borderRadius: 12, padding: 14,
       borderLeftWidth: 3, borderLeftColor: '#7C3AED',
