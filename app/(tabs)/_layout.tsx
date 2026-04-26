@@ -42,8 +42,8 @@ export default function TabLayout() {
           paddingBottom: 8,
         },
         tabBarLabelStyle: {
-          fontSize: 11,
-          fontWeight: '500',
+          fontSize: 9,
+          fontWeight: '600',
         },
         headerStyle: { backgroundColor: c.card },
         headerShadowVisible: false,
@@ -54,7 +54,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: '홈',
+          title: 'Home/홈',
           headerRight: () => <ThemeToggleBtn />,
           tabBarIcon: ({ focused }) => <TabIcon emoji="🏠" focused={focused} />,
         }}
@@ -62,28 +62,28 @@ export default function TabLayout() {
       <Tabs.Screen
         name="diary"
         options={{
-          title: '일지',
+          title: 'Diary/일지',
           tabBarIcon: ({ focused }) => <TabIcon emoji="📋" focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="knowledge"
         options={{
-          title: '상식',
+          title: 'Tips/상식',
           tabBarIcon: ({ focused }) => <TabIcon emoji="📚" focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="album"
         options={{
-          title: '앨범',
+          title: 'Album/앨범',
           tabBarIcon: ({ focused }) => <TabIcon emoji="📸" focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
-          title: '프로필',
+          title: 'Profile/프로필',
           tabBarIcon: ({ focused }) => <TabIcon emoji="🐾" focused={focused} />,
         }}
       />

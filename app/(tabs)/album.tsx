@@ -222,7 +222,7 @@ function getStyles(c: Colors) {
     switcherRow: { flexDirection: 'row', gap: 8, paddingVertical: 2 },
     switcherChip: {
       flexDirection: 'row', alignItems: 'center', gap: 6,
-      paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
+      paddingHorizontal: 14, paddingVertical: 5, borderRadius: 20,
       backgroundColor: c.chip, borderWidth: 1.5, borderColor: 'transparent',
       minWidth: 110, justifyContent: 'center',
     },
