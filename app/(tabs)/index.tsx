@@ -315,23 +315,25 @@ export default function HomeScreen() {
 
       {/* FAB 기록 유형 선택 모달 */}
       <Modal visible={showFab} transparent animationType="slide" onRequestClose={() => setShowFab(false)}>
-        <TouchableOpacity style={styles.fabOverlay} activeOpacity={1} onPress={() => setShowFab(false)} />
-        <View style={styles.fabSheet}>
-          <Text style={styles.fabSheetTitle}>Quick Add / 빠른 기록</Text>
-          <View style={styles.fabTypeGrid}>
-            {RECORD_TYPES.map((t) => (
-              <TouchableOpacity
-                key={t.type}
-                style={[styles.fabTypeCard, { backgroundColor: t.color }]}
-                onPress={() => {
-                  setShowFab(false)
-                  router.push({ pathname: '/(tabs)/diary', params: { openAddType: t.type } })
-                }}
-              >
-                <Text style={{ fontSize: 26 }}>{t.emoji}</Text>
-                <Text style={styles.fabTypeLabel}>{t.label}</Text>
-              </TouchableOpacity>
-            ))}
+        <View style={styles.fabModalWrap}>
+          <TouchableOpacity style={styles.fabOverlay} activeOpacity={1} onPress={() => setShowFab(false)} />
+          <View style={styles.fabSheet}>
+            <Text style={styles.fabSheetTitle}>Quick Add / 빠른 기록</Text>
+            <View style={styles.fabTypeGrid}>
+              {RECORD_TYPES.map((t) => (
+                <TouchableOpacity
+                  key={t.type}
+                  style={[styles.fabTypeCard, { backgroundColor: t.color }]}
+                  onPress={() => {
+                    setShowFab(false)
+                    router.push({ pathname: '/(tabs)/diary', params: { openAddType: t.type } })
+                  }}
+                >
+                  <Text style={{ fontSize: 26 }}>{t.emoji}</Text>
+                  <Text style={styles.fabTypeLabel}>{t.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
           </View>
         </View>
       </Modal>
@@ -572,9 +574,10 @@ function getStyles(c: Colors) {
       shadowColor: '#1A73E8', shadowOpacity: 0.5, shadowRadius: 10, elevation: 8,
     },
     fabText: { fontSize: 28, color: '#FFFFFF', lineHeight: 34, fontWeight: '300' },
+    fabModalWrap: { flex: 1, justifyContent: 'flex-end' },
     fabOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)' },
     fabSheet: {
-      backgroundColor: '#FFFFFF', borderTopLeftRadius: 24, borderTopRightRadius: 24,
+      backgroundColor: c.card, borderTopLeftRadius: 24, borderTopRightRadius: 24,
       padding: 24, paddingBottom: 32, gap: 16,
     },
     fabSheetTitle: { fontSize: 16, fontWeight: '800', color: '#1F2937', textAlign: 'center' },
@@ -607,13 +610,13 @@ function getStyles(c: Colors) {
     // 투약 관리 모달
     medModalOverlay: { flex: 1, justifyContent: 'flex-end' },
     medModalSheet: {
-      backgroundColor: '#FFFFFF', borderTopLeftRadius: 24, borderTopRightRadius: 24,
+      backgroundColor: c.card, borderTopLeftRadius: 24, borderTopRightRadius: 24,
       padding: 24, gap: 12,
       shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 20, elevation: 10,
     },
     medModalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-    medModalTitle: { fontSize: 17, fontWeight: '800', color: '#1F2937' },
-    medModalClose: { fontSize: 18, color: '#9CA3AF', padding: 4 },
+    medModalTitle: { fontSize: 17, fontWeight: '800', color: c.text },
+    medModalClose: { fontSize: 18, color: c.textFaint, padding: 4 },
     medMgmtRow: {
       flexDirection: 'row', alignItems: 'center', gap: 10,
       backgroundColor: '#F9FAFB', borderRadius: 10, padding: 12,
