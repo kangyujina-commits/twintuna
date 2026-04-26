@@ -41,6 +41,8 @@ export default function HomeScreen() {
   const { colors: c } = useTheme()
   const styles = useMemo(() => getStyles(c), [c])
   const [showAddVax,   setShowAddVax]   = useState(false)
+  const [showAnnual,   setShowAnnual]   = useState(false)
+  const [annualYear,   setAnnualYear]   = useState(() => new Date().getFullYear())
   const [showChart,    setShowChart]    = useState(false)
   const [showFab,      setShowFab]      = useState(false)
   const [showMedMgmt,  setShowMedMgmt]  = useState(false)
@@ -67,6 +69,38 @@ export default function HomeScreen() {
     })
     .filter((v) => v.daysUntil <= 3)
     .sort((a, b) => a.daysUntil - b.daysUntil)
+
+  // 생일 여부
+  const isBirthday = pet.birth_date ? pet.birth_date.slice(5) === today.slice(5) : false
+  const petAge     = pet.birth_date ? Math.floor(
+    (new Date(today).getTime() - new Date(pet.birth_date).getTime()) / (365.25 * 86400000)
+  ) : null
+
+  // 연간 리포트 데이터
+  const annualStats = useMemo(() => {
+    const ys = String(annualYear)
+    const yr = records.filter((r) => r.petId === pet.id && r.date.startsWith(ys))
+    const monthlyCounts = Array.from({ length: 12 }, (_, i) => {
+      const m = String(i + 1).padStart(2, '0')
+      return yr.filter((r) => r.date.startsWith(`${ys}-${m}`)).length
+    })
+    const maxMonthly = Math.max(...monthlyCounts, 1)
+    const wRecs = yr.filter((r) => r.type === 'weight' && r.value !== undefined)
+      .sort((a, b) => a.date.localeCompare(b.date))
+    const wChange = wRecs.length >= 2 ? +(wRecs[wRecs.length - 1].value! - wRecs[0].value!).toFixed(2) : null
+    const typeCounts = RECORD_TYPES.map((t) => ({ ...t, count: yr.filter((r) => r.type === t.type).length }))
+      .filter((t) => t.count > 0)
+      .sort((a, b) => b.count - a.count)
+    return {
+      total:     yr.length,
+      monthlyCounts,
+      maxMonthly,
+      wChange,
+      hospital:  yr.filter((r) => r.type === 'hospital').length,
+      symptom:   yr.filter((r) => r.type === 'symptom').length,
+      topTypes:  typeCounts.slice(0, 3),
+    }
+  }, [records, pet.id, annualYear])
 
   // 오늘 투약 일정
   const todayMeds = medSchedules.filter((s) => s.petId === pet.id)
@@ -124,6 +158,19 @@ export default function HomeScreen() {
               ))}
             </View>
           </ScrollView>
+        )}
+
+        {/* 생일 배너 */}
+        {isBirthday && (
+          <View style={styles.birthdayBanner}>
+            <Text style={styles.birthdayEmoji}>🎂🎉</Text>
+            <View style={styles.birthdayInfo}>
+              <Text style={styles.birthdayTitle}>Happy Birthday, {pet.name}!</Text>
+              <Text style={styles.birthdaySub}>
+                오늘은 {pet.name}의 생일이에요{petAge !== null ? ` · 만 ${petAge}살` : ''}! 🥳
+              </Text>
+            </View>
+          </View>
         )}
 
         <View style={styles.petCard}>
@@ -240,6 +287,9 @@ export default function HomeScreen() {
           <>
             <View style={styles.sectionRow}>
               <Text style={styles.sectionTitle}>📊 {thisMonth} 건강 리포트</Text>
+              <TouchableOpacity style={styles.sectionAddBtn} onPress={() => setShowAnnual(true)}>
+                <Text style={styles.sectionAddText}>연간 리포트</Text>
+              </TouchableOpacity>
             </View>
             <View style={styles.reportGrid}>
               {([
@@ -396,6 +446,96 @@ export default function HomeScreen() {
             </View>
           </View>
         </KeyboardAvoidingView>
+      </Modal>
+
+      {/* 연간 리포트 모달 */}
+      <Modal visible={showAnnual} transparent animationType="slide" onRequestClose={() => setShowAnnual(false)}>
+        <View style={styles.annualWrap}>
+          <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={() => setShowAnnual(false)} />
+          <View style={styles.annualSheet}>
+            {/* 헤더 */}
+            <View style={styles.annualHeader}>
+              <TouchableOpacity onPress={() => setAnnualYear(y => y - 1)}>
+                <Text style={styles.annualArrow}>‹</Text>
+              </TouchableOpacity>
+              <Text style={styles.annualTitle}>📊 {annualYear}년 연간 리포트</Text>
+              <TouchableOpacity onPress={() => setAnnualYear(y => y + 1)}>
+                <Text style={styles.annualArrow}>›</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 480 }}>
+              {annualStats.total === 0 ? (
+                <View style={styles.annualEmpty}>
+                  <Text style={styles.annualEmptyText}>{annualYear}년 기록이 없어요.</Text>
+                </View>
+              ) : (
+                <>
+                  {/* 요약 그리드 */}
+                  <View style={styles.annualGrid}>
+                    {[
+                      { label: '총 기록',   value: `${annualStats.total}건`,  emoji: '📋' },
+                      { label: '병원 방문', value: `${annualStats.hospital}회`, emoji: '🏥' },
+                      { label: '증상 기록', value: `${annualStats.symptom}건`,  emoji: '🌡️' },
+                      { label: '체중 변화', emoji: '⚖️',
+                        value: annualStats.wChange === null ? '—'
+                          : `${annualStats.wChange > 0 ? '+' : ''}${annualStats.wChange} kg`,
+                        color: annualStats.wChange === null ? undefined
+                          : annualStats.wChange > 0 ? '#DC2626' : '#059669',
+                      },
+                    ].map(({ label, value, emoji, color }) => (
+                      <View key={label} style={styles.annualStatCard}>
+                        <Text style={{ fontSize: 20 }}>{emoji}</Text>
+                        <Text style={[styles.annualStatValue, color ? { color } : null]}>{value}</Text>
+                        <Text style={styles.annualStatLabel}>{label}</Text>
+                      </View>
+                    ))}
+                  </View>
+
+                  {/* 월별 바 차트 */}
+                  <Text style={styles.annualSubTitle}>월별 기록 현황</Text>
+                  <View style={styles.barChartWrap}>
+                    {annualStats.monthlyCounts.map((count, i) => {
+                      const barH = annualStats.maxMonthly > 0
+                        ? Math.max((count / annualStats.maxMonthly) * 80, count > 0 ? 6 : 0)
+                        : 0
+                      return (
+                        <View key={i} style={styles.barCol}>
+                          {count > 0 && <Text style={styles.barCount}>{count}</Text>}
+                          <View style={styles.barTrack}>
+                            <View style={[styles.barFill, { height: barH }]} />
+                          </View>
+                          <Text style={styles.barMonth}>{i + 1}월</Text>
+                        </View>
+                      )
+                    })}
+                  </View>
+
+                  {/* 많이 기록한 유형 */}
+                  {annualStats.topTypes.length > 0 && (
+                    <>
+                      <Text style={styles.annualSubTitle}>가장 많이 기록한 항목</Text>
+                      <View style={styles.topTypesRow}>
+                        {annualStats.topTypes.map((t, i) => (
+                          <View key={t.type} style={[styles.topTypeCard, { backgroundColor: t.color }]}>
+                            <Text style={{ fontSize: 22 }}>{t.emoji}</Text>
+                            <Text style={styles.topTypeLabel}>{t.label}</Text>
+                            <Text style={styles.topTypeCount}>{t.count}건</Text>
+                            {i === 0 && <View style={styles.topTypeCrown}><Text>👑</Text></View>}
+                          </View>
+                        ))}
+                      </View>
+                    </>
+                  )}
+                </>
+              )}
+            </ScrollView>
+
+            <TouchableOpacity style={styles.annualClose} onPress={() => setShowAnnual(false)}>
+              <Text style={styles.annualCloseText}>닫기</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       </Modal>
 
       <VaccineModal
@@ -636,6 +776,50 @@ function getStyles(c: Colors) {
     medTimeBtnTextActive: { color: '#065F46', fontWeight: '700' },
     medAddBtn: { backgroundColor: '#10B981', borderRadius: 12, padding: 14, alignItems: 'center' },
     medAddBtnText: { fontSize: 15, fontWeight: '700', color: '#FFFFFF' },
+    // 생일 배너
+    birthdayBanner: {
+      borderRadius: 16, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 12,
+      backgroundColor: '#FEF3C7',
+      borderWidth: 1.5, borderColor: '#FCD34D',
+      shadowColor: '#F59E0B', shadowOpacity: 0.3, shadowRadius: 8, elevation: 3,
+    },
+    birthdayEmoji: { fontSize: 32 },
+    birthdayInfo:  { flex: 1 },
+    birthdayTitle: { fontSize: 16, fontWeight: '800', color: '#92400E' },
+    birthdaySub:   { fontSize: 13, color: '#B45309', marginTop: 2 },
+    // 연간 리포트
+    annualWrap:  { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' },
+    annualSheet: {
+      backgroundColor: c.card, borderTopLeftRadius: 28, borderTopRightRadius: 28,
+      padding: 24, paddingBottom: 32, gap: 16,
+      shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 20, elevation: 12,
+    },
+    annualHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    annualArrow:  { fontSize: 26, color: '#1A73E8', paddingHorizontal: 8 },
+    annualTitle:  { fontSize: 16, fontWeight: '800', color: c.text, textAlign: 'center', flex: 1 },
+    annualGrid:   { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    annualStatCard: {
+      flex: 1, minWidth: '45%', backgroundColor: c.bg, borderRadius: 14,
+      paddingVertical: 14, paddingHorizontal: 8, alignItems: 'center', gap: 4,
+    },
+    annualStatValue: { fontSize: 18, fontWeight: '800', color: c.text },
+    annualStatLabel: { fontSize: 11, color: c.textFaint, fontWeight: '600' },
+    annualSubTitle:  { fontSize: 13, fontWeight: '700', color: c.textSub, marginTop: 4 },
+    barChartWrap: { flexDirection: 'row', alignItems: 'flex-end', height: 110, gap: 2 },
+    barCol:       { flex: 1, alignItems: 'center', gap: 2 },
+    barCount:     { fontSize: 8, color: '#1A73E8', fontWeight: '700' },
+    barTrack:     { flex: 1, width: '80%', justifyContent: 'flex-end' },
+    barFill:      { backgroundColor: '#1A73E8', borderRadius: 3, width: '100%' },
+    barMonth:     { fontSize: 8, color: c.textFaint, fontWeight: '600' },
+    topTypesRow:  { flexDirection: 'row', gap: 8 },
+    topTypeCard:  { flex: 1, borderRadius: 14, padding: 12, alignItems: 'center', gap: 4, position: 'relative' },
+    topTypeLabel: { fontSize: 10, fontWeight: '700', color: '#374151', textAlign: 'center' },
+    topTypeCount: { fontSize: 14, fontWeight: '800', color: '#1F2937' },
+    topTypeCrown: { position: 'absolute', top: -8, right: 4 },
+    annualEmpty:  { alignItems: 'center', paddingVertical: 32 },
+    annualEmptyText: { fontSize: 14, color: c.textFaint },
+    annualClose:  { backgroundColor: c.chip, borderRadius: 14, padding: 14, alignItems: 'center', marginTop: 4 },
+    annualCloseText: { fontSize: 15, fontWeight: '700', color: c.textMuted },
     modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
     modalSheet: { backgroundColor: c.card, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 24, gap: 8 },
     modalTitle: { fontSize: 17, fontWeight: '800', color: c.text, marginBottom: 8, textAlign: 'center' },

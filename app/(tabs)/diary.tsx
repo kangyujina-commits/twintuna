@@ -284,6 +284,123 @@ function RecordModal({
   )
 }
 
+const HEAT_COLORS = ['transparent', '#DBEAFE', '#93C5FD', '#3B82F6', '#1D4ED8']
+function heatColor(count: number) {
+  if (count === 0) return HEAT_COLORS[0]
+  if (count === 1) return HEAT_COLORS[1]
+  if (count === 2) return HEAT_COLORS[2]
+  if (count <= 4) return HEAT_COLORS[3]
+  return HEAT_COLORS[4]
+}
+
+function HeatmapView({ records, onSelectDate }: { records: DiaryRecord[]; onSelectDate: (d: string) => void }) {
+  const today = new Date()
+  const [year,  setYear]  = useState(today.getFullYear())
+  const [month, setMonth] = useState(today.getMonth())
+  const { colors: c } = useTheme()
+  const hmStyles = useMemo(() => getHmStyles(c), [c])
+
+  const firstDOW  = new Date(year, month, 1).getDay()
+  const totalDays = new Date(year, month + 1, 0).getDate()
+
+  const countByDate: Record<string, number> = {}
+  records.forEach((r) => {
+    const [y, m] = r.date.split('-').map(Number)
+    if (y === year && m === month + 1) {
+      countByDate[r.date] = (countByDate[r.date] || 0) + 1
+    }
+  })
+
+  function pad(n: number) { return String(n).padStart(2, '0') }
+  function ds(d: number)  { return `${year}-${pad(month + 1)}-${pad(d)}` }
+  function prev() { if (month === 0) { setYear(y => y - 1); setMonth(11) } else setMonth(m => m - 1) }
+  function next() { if (month === 11) { setYear(y => y + 1); setMonth(0) } else setMonth(m => m + 1) }
+
+  const cells: (number | null)[] = []
+  for (let i = 0; i < firstDOW; i++) cells.push(null)
+  for (let d = 1; d <= totalDays; d++) cells.push(d)
+
+  const todayStr2 = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`
+  const maxCount = Math.max(...Object.values(countByDate), 0)
+  const totalRecs = Object.values(countByDate).reduce((a, b) => a + b, 0)
+  const activeDays = Object.keys(countByDate).length
+
+  return (
+    <View style={hmStyles.container}>
+      <View style={hmStyles.header}>
+        <TouchableOpacity onPress={prev}><Text style={hmStyles.arrow}>‹</Text></TouchableOpacity>
+        <View style={hmStyles.titleBlock}>
+          <Text style={hmStyles.title}>{year}년 {MONTH_NAMES[month]}</Text>
+          <Text style={hmStyles.subtitle}>총 {totalRecs}건 · {activeDays}일 기록</Text>
+        </View>
+        <TouchableOpacity onPress={next}><Text style={hmStyles.arrow}>›</Text></TouchableOpacity>
+      </View>
+
+      <View style={hmStyles.dayRow}>
+        {DAY_NAMES.map((d, i) => (
+          <Text key={d} style={[hmStyles.dayName, i === 0 && hmStyles.sun]}>{d}</Text>
+        ))}
+      </View>
+
+      <View style={hmStyles.grid}>
+        {cells.map((day, i) => {
+          if (!day) return <View key={`e${i}`} style={hmStyles.cell} />
+          const dateStr = ds(day)
+          const count   = countByDate[dateStr] ?? 0
+          const isToday = dateStr === todayStr2
+          return (
+            <TouchableOpacity
+              key={dateStr}
+              style={[hmStyles.cell, { backgroundColor: heatColor(count) }, isToday && hmStyles.cellToday]}
+              onPress={() => { if (count > 0) onSelectDate(dateStr) }}
+              activeOpacity={count > 0 ? 0.7 : 1}
+            >
+              <Text style={[hmStyles.dayNum, i % 7 === 0 && hmStyles.sun, isToday && hmStyles.dayNumToday]}>
+                {day}
+              </Text>
+              {count > 0 && <Text style={hmStyles.countLabel}>{count}</Text>}
+            </TouchableOpacity>
+          )
+        })}
+      </View>
+
+      {/* 범례 */}
+      <View style={hmStyles.legend}>
+        <Text style={hmStyles.legendLabel}>적음</Text>
+        {HEAT_COLORS.map((col, i) => (
+          <View key={i} style={[hmStyles.legendCell, { backgroundColor: col || c.chip }]} />
+        ))}
+        <Text style={hmStyles.legendLabel}>많음</Text>
+        {maxCount > 0 && <Text style={hmStyles.maxLabel}>최대 {maxCount}건/일</Text>}
+      </View>
+    </View>
+  )
+}
+
+function getHmStyles(c: Colors) {
+  return StyleSheet.create({
+    container: { backgroundColor: c.card, borderRadius: 16, padding: 14, gap: 8, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 6, elevation: 2 },
+    header:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    arrow:     { fontSize: 26, color: '#1A73E8', paddingHorizontal: 8 },
+    titleBlock: { alignItems: 'center', gap: 2 },
+    title:     { fontSize: 15, fontWeight: '700', color: c.text },
+    subtitle:  { fontSize: 11, color: c.textFaint },
+    dayRow:    { flexDirection: 'row' },
+    dayName:   { flex: 1, textAlign: 'center', fontSize: 11, fontWeight: '600', color: c.textMuted },
+    sun:       { color: '#EF4444' },
+    grid:      { flexDirection: 'row', flexWrap: 'wrap', gap: 3 },
+    cell:      { width: `${100 / 7}%` as any, aspectRatio: 1, borderRadius: 6, alignItems: 'center', justifyContent: 'center', gap: 1 },
+    cellToday: { borderWidth: 2, borderColor: '#1A73E8' },
+    dayNum:    { fontSize: 11, color: c.textSub, fontWeight: '500' },
+    dayNumToday: { fontWeight: '800', color: '#1A73E8' },
+    countLabel: { fontSize: 8, color: '#1E40AF', fontWeight: '700' },
+    legend:    { flexDirection: 'row', alignItems: 'center', gap: 4, justifyContent: 'center', marginTop: 4 },
+    legendLabel: { fontSize: 10, color: c.textFaint },
+    legendCell: { width: 14, height: 14, borderRadius: 3 },
+    maxLabel:  { fontSize: 10, color: c.textFaint, marginLeft: 4 },
+  })
+}
+
 function OptionsModal({ visible, onEdit, onDelete, onClose }: {
   visible: boolean; onEdit: () => void; onDelete: () => void; onClose: () => void
 }) {
@@ -315,7 +432,7 @@ export default function DiaryScreen() {
   const [addDate,        setAddDate]       = useState('')
   const [showCalPicker,  setShowCalPicker] = useState(false)
   const [editRecord,     setEditRecord]    = useState<DiaryRecord | null>(null)
-  const [viewMode,       setViewMode]      = useState<'list' | 'calendar'>('list')
+  const [viewMode,       setViewMode]      = useState<'list' | 'calendar' | 'heatmap'>('list')
   const [selectedDate,   setSelectedDate]  = useState('')
   const [showAiModal,     setShowAiModal]    = useState(false)
   const [aiPhoto,         setAiPhoto]        = useState('')
@@ -519,6 +636,9 @@ export default function DiaryScreen() {
           <TouchableOpacity style={[styles.toggleBtn, viewMode === 'calendar' && styles.toggleBtnActive]} onPress={() => { setViewMode('calendar'); if (!selectedDate) setSelectedDate(todayStr()) }}>
             <Text style={[styles.toggleText, viewMode === 'calendar' && styles.toggleTextActive]}>📅 캘린더</Text>
           </TouchableOpacity>
+          <TouchableOpacity style={[styles.toggleBtn, viewMode === 'heatmap' && styles.toggleBtnActive]} onPress={() => setViewMode('heatmap')}>
+            <Text style={[styles.toggleText, viewMode === 'heatmap' && styles.toggleTextActive]}>🔥 히트맵</Text>
+          </TouchableOpacity>
         </View>
 
         {viewMode === 'calendar' && (
@@ -526,6 +646,13 @@ export default function DiaryScreen() {
             records={records}
             selectedDate={selectedDate}
             onSelectDate={(date) => { setSelectedDate(date); if (date) setShowCalPicker(true) }}
+          />
+        )}
+
+        {viewMode === 'heatmap' && (
+          <HeatmapView
+            records={records}
+            onSelectDate={(date) => { setSelectedDate(date); setViewMode('calendar') }}
           />
         )}
 
@@ -585,7 +712,7 @@ export default function DiaryScreen() {
           </>
         )}
 
-        {viewMode === 'calendar' && !selectedDate ? (
+        {viewMode === 'heatmap' ? null : viewMode === 'calendar' && !selectedDate ? (
           <View style={styles.emptyBox}>
             <Text style={styles.emptyText}>날짜를 선택하면 해당 날의 기록을 볼 수 있어요.</Text>
           </View>
