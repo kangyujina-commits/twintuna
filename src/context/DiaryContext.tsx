@@ -34,6 +34,14 @@ export interface HospitalItem {
   memo?: string
 }
 
+export interface AlbumPhoto {
+  id: string
+  petId: string
+  date: string
+  photo_uri: string
+  caption?: string
+}
+
 interface DiaryContextValue {
   records: DiaryRecord[]
   addRecord:    (r: Omit<DiaryRecord, 'id'>) => void
@@ -47,11 +55,15 @@ interface DiaryContextValue {
   addHospital:    (h: Omit<HospitalItem, 'id'>) => void
   updateHospital: (h: HospitalItem) => void
   deleteHospital: (id: string) => void
+  albumPhotos: AlbumPhoto[]
+  addAlbumPhoto:    (p: Omit<AlbumPhoto, 'id'>) => void
+  deleteAlbumPhoto: (id: string) => void
 }
 
 const STORAGE_RECORDS_KEY   = '@twintuna:records'
 const STORAGE_VACCINES_KEY  = '@twintuna:vaccines'
 const STORAGE_HOSPITALS_KEY = '@twintuna:hospitals'
+const STORAGE_ALBUM_KEY     = '@twintuna:album'
 
 const INIT_RECORDS: DiaryRecord[] = [
   { id: '1', petId: '1', date: '2026-04-13', type: 'weight', value: 4.2 },
@@ -68,21 +80,24 @@ const INIT_VACCINES: VaccineItem[] = [
 const DiaryContext = createContext<DiaryContextValue | null>(null)
 
 export function DiaryProvider({ children }: { children: ReactNode }) {
-  const [records,   setRecordsState]   = useState<DiaryRecord[]>(INIT_RECORDS)
-  const [vaccines,  setVaccinesState]  = useState<VaccineItem[]>(INIT_VACCINES)
-  const [hospitals, setHospitalsState] = useState<HospitalItem[]>([])
-  const [loaded, setLoaded]            = useState(false)
+  const [records,      setRecordsState]   = useState<DiaryRecord[]>(INIT_RECORDS)
+  const [vaccines,     setVaccinesState]  = useState<VaccineItem[]>(INIT_VACCINES)
+  const [hospitals,    setHospitalsState] = useState<HospitalItem[]>([])
+  const [albumPhotos,  setAlbumState]     = useState<AlbumPhoto[]>([])
+  const [loaded, setLoaded]               = useState(false)
 
   useEffect(() => {
     async function load() {
-      const [recJson, vacJson, hospJson] = await Promise.all([
+      const [recJson, vacJson, hospJson, albumJson] = await Promise.all([
         AsyncStorage.getItem(STORAGE_RECORDS_KEY),
         AsyncStorage.getItem(STORAGE_VACCINES_KEY),
         AsyncStorage.getItem(STORAGE_HOSPITALS_KEY),
+        AsyncStorage.getItem(STORAGE_ALBUM_KEY),
       ])
-      if (recJson)  setRecordsState(JSON.parse(recJson))
-      if (vacJson)  setVaccinesState(JSON.parse(vacJson))
-      if (hospJson) setHospitalsState(JSON.parse(hospJson))
+      if (recJson)   setRecordsState(JSON.parse(recJson))
+      if (vacJson)   setVaccinesState(JSON.parse(vacJson))
+      if (hospJson)  setHospitalsState(JSON.parse(hospJson))
+      if (albumJson) setAlbumState(JSON.parse(albumJson))
       setLoaded(true)
     }
     load()
@@ -103,6 +118,11 @@ export function DiaryProvider({ children }: { children: ReactNode }) {
     AsyncStorage.setItem(STORAGE_HOSPITALS_KEY, JSON.stringify(hospitals))
   }, [hospitals, loaded])
 
+  useEffect(() => {
+    if (!loaded) return
+    AsyncStorage.setItem(STORAGE_ALBUM_KEY, JSON.stringify(albumPhotos))
+  }, [albumPhotos, loaded])
+
   const addRecord    = (r: Omit<DiaryRecord, 'id'>) => setRecordsState((p) => [{ id: Date.now().toString(), ...r }, ...p])
   const updateRecord = (r: DiaryRecord)              => setRecordsState((p) => p.map((x) => (x.id === r.id ? r : x)))
   const deleteRecord = (id: string)                  => setRecordsState((p) => p.filter((x) => x.id !== id))
@@ -115,6 +135,9 @@ export function DiaryProvider({ children }: { children: ReactNode }) {
   const updateHospital = (h: HospitalItem)              => setHospitalsState((p) => p.map((x) => (x.id === h.id ? h : x)))
   const deleteHospital = (id: string)                   => setHospitalsState((p) => p.filter((x) => x.id !== id))
 
+  const addAlbumPhoto    = (p: Omit<AlbumPhoto, 'id'>) => setAlbumState((prev) => [{ id: Date.now().toString(), ...p }, ...prev])
+  const deleteAlbumPhoto = (id: string)                 => setAlbumState((prev) => prev.filter((x) => x.id !== id))
+
   if (!loaded) return null
 
   return (
@@ -122,6 +145,7 @@ export function DiaryProvider({ children }: { children: ReactNode }) {
       records, addRecord, updateRecord, deleteRecord,
       vaccines, addVaccine, updateVaccine, deleteVaccine,
       hospitals, addHospital, updateHospital, deleteHospital,
+      albumPhotos, addAlbumPhoto, deleteAlbumPhoto,
     }}>
       {children}
     </DiaryContext.Provider>
