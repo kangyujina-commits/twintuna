@@ -12,8 +12,8 @@ import { RECORD_TYPES } from '../../src/constants/recordTypes'
 import { RecordType } from '../../src/types'
 
 const SCREEN_W = Dimensions.get('window').width
-const COL = 3
-const THUMB = (SCREEN_W - 4) / COL
+const COL = 4
+const THUMB = (SCREEN_W - 6) / COL
 
 type GridItem =
   | { kind: 'album';  id: string; petId: string; date: string; photo_uri: string; caption?: string }
