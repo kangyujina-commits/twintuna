@@ -197,7 +197,12 @@ export default function AlbumScreen() {
       <Modal visible={showCaption} transparent animationType="slide" onRequestClose={() => setShowCaption(false)}>
         <TouchableOpacity style={styles.captionOverlay} activeOpacity={1} onPress={() => setShowCaption(false)} />
         <View style={styles.captionSheet}>
-          {pendingUri ? <Image source={{ uri: pendingUri }} style={styles.captionPreview} resizeMode="cover" /> : null}
+          {pendingUri ? (
+            <View style={styles.captionPreviewRow}>
+              <Image source={{ uri: pendingUri }} style={styles.captionPreview} resizeMode="cover" />
+              <Text style={styles.captionPreviewHint}>사진이 추가됩니다 📷</Text>
+            </View>
+          ) : null}
           <Text style={styles.captionLabel}>한 마디 남기기 (선택)</Text>
           <TextInput
             style={styles.captionInput}
@@ -278,7 +283,9 @@ function getStyles(c: Colors) {
       backgroundColor: c.card, borderTopLeftRadius: 24, borderTopRightRadius: 24,
       padding: 24, gap: 12,
     },
-    captionPreview: { width: '100%', height: 90, borderRadius: 12 },
+    captionPreviewRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    captionPreview: { width: 72, height: 72, borderRadius: 10 },
+    captionPreviewHint: { fontSize: 13, color: c.textMuted, flex: 1 },
     captionLabel: { fontSize: 13, fontWeight: '600', color: c.textSub },
     captionInput: {
       borderWidth: 1, borderColor: c.border, borderRadius: 12,
