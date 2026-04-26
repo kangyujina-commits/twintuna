@@ -74,6 +74,13 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="album"
+        options={{
+          title: '앨범',
+          tabBarIcon: ({ focused }) => <TabIcon emoji="📸" focused={focused} />,
+        }}
+      />
+      <Tabs.Screen
         name="profile"
         options={{
           title: '프로필',

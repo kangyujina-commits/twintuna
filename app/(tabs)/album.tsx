@@ -1,21 +1,19 @@
 import { useMemo, useState } from 'react'
 import {
   View, Text, StyleSheet, TouchableOpacity, Image,
-  FlatList, Modal, Dimensions, ScrollView,
+  FlatList, Modal, Dimensions,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { useRouter } from 'expo-router'
-import { useDiary } from '../src/context/DiaryContext'
-import { usePet } from '../src/context/PetContext'
-import { useTheme, Colors } from '../src/context/ThemeContext'
-import { RECORD_TYPES } from '../src/constants/recordTypes'
+import { useDiary } from '../../src/context/DiaryContext'
+import { usePet } from '../../src/context/PetContext'
+import { useTheme, Colors } from '../../src/context/ThemeContext'
+import { RECORD_TYPES } from '../../src/constants/recordTypes'
 
 const SCREEN_W = Dimensions.get('window').width
 const COL = 3
 const THUMB = (SCREEN_W - 4) / COL   // gap 2 between cols
 
 export default function AlbumScreen() {
-  const router = useRouter()
   const { colors: c } = useTheme()
   const styles = useMemo(() => getStyles(c), [c])
   const { activePet } = usePet()
@@ -32,14 +30,7 @@ export default function AlbumScreen() {
 
   if (photoRecords.length === 0) {
     return (
-      <SafeAreaView style={styles.safe}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-            <Text style={styles.backBtnText}>← 뒤로</Text>
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>📸 성장 앨범</Text>
-          <View style={{ width: 60 }} />
-        </View>
+      <SafeAreaView style={styles.safe} edges={['bottom']}>
         <View style={styles.empty}>
           <Text style={styles.emptyIcon}>📷</Text>
           <Text style={styles.emptyTitle}>사진이 없어요</Text>
@@ -50,14 +41,8 @@ export default function AlbumScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Text style={styles.backBtnText}>← 뒤로</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>📸 성장 앨범</Text>
-        <Text style={styles.headerCount}>{photoRecords.length}장</Text>
-      </View>
+    <SafeAreaView style={styles.safe} edges={['bottom']}>
+      <Text style={styles.countLabel}>{photoRecords.length}장</Text>
 
       <FlatList
         data={photoRecords}
@@ -91,7 +76,7 @@ export default function AlbumScreen() {
           </TouchableOpacity>
 
           {selected && (
-            <ScrollView contentContainerStyle={styles.viewerContent} scrollEnabled={false}>
+            <View style={styles.viewerContent}>
               <Image
                 source={{ uri: selected.photo_uri! }}
                 style={styles.viewerImg}
@@ -111,7 +96,7 @@ export default function AlbumScreen() {
                   <Text style={styles.viewerNote}>{selected.note}</Text>
                 ) : null}
               </View>
-            </ScrollView>
+            </View>
           )}
         </View>
       </Modal>
@@ -122,15 +107,7 @@ export default function AlbumScreen() {
 function getStyles(c: Colors) {
   return StyleSheet.create({
     safe: { flex: 1, backgroundColor: c.bg },
-    header: {
-      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-      paddingHorizontal: 16, paddingVertical: 12,
-      backgroundColor: c.card, borderBottomWidth: 1, borderBottomColor: c.border,
-    },
-    backBtn: { paddingVertical: 4, paddingRight: 12 },
-    backBtnText: { fontSize: 15, color: '#1A73E8', fontWeight: '600' },
-    headerTitle: { fontSize: 17, fontWeight: '800', color: c.text },
-    headerCount: { fontSize: 13, color: c.textFaint, fontWeight: '600', width: 60, textAlign: 'right' },
+    countLabel: { fontSize: 12, color: c.textFaint, fontWeight: '600', textAlign: 'right', paddingHorizontal: 14, paddingVertical: 6 },
     grid: { gap: 2 },
     thumb: { width: THUMB, height: THUMB, position: 'relative' },
     thumbImg: { width: THUMB, height: THUMB },
@@ -150,7 +127,7 @@ function getStyles(c: Colors) {
       backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center',
     },
     viewerCloseText: { color: '#FFF', fontSize: 16, fontWeight: '700' },
-    viewerContent: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 16, paddingHorizontal: 16 },
+    viewerContent: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 16, paddingHorizontal: 16, paddingTop: 60 },
     viewerImg: { width: SCREEN_W, height: SCREEN_W },
     viewerMeta: { alignItems: 'center', gap: 8 },
     viewerDate: { fontSize: 14, color: 'rgba(255,255,255,0.7)', fontWeight: '600' },
