@@ -46,8 +46,9 @@ export default function HomeScreen() {
   const [showChart,    setShowChart]    = useState(false)
   const [showFab,      setShowFab]      = useState(false)
   const [showMedMgmt,  setShowMedMgmt]  = useState(false)
-  const [newMedName,   setNewMedName]   = useState('')
-  const [newMedTime,   setNewMedTime]   = useState<MedTime>('anytime')
+  const [newMedName,      setNewMedName]      = useState('')
+  const [newMedTime,      setNewMedTime]      = useState<MedTime>('anytime')
+  const [newMedAlarmTime, setNewMedAlarmTime] = useState('')
 
   const today     = todayStr()
   const todayRecs = records.filter((r) => r.petId === pet.id && r.date === today)
@@ -249,7 +250,9 @@ export default function HomeScreen() {
                   </View>
                   <Text style={[styles.medName, done && styles.medNameDone]}>{s.name}</Text>
                   <View style={styles.medTimeBadge}>
-                    <Text style={styles.medTimeText}>{MED_TIME_LABELS[s.time]}</Text>
+                    <Text style={styles.medTimeText}>
+                      {MED_TIME_LABELS[s.time]}{s.alarm_time && s.time !== 'anytime' ? ` ${s.alarm_time}` : ''}
+                    </Text>
                   </View>
                 </TouchableOpacity>
               )
@@ -404,7 +407,16 @@ export default function HomeScreen() {
             {todayMeds.map((s) => (
               <View key={s.id} style={styles.medMgmtRow}>
                 <Text style={styles.medMgmtName}>{s.name}</Text>
-                <View style={styles.medTimeBadge}><Text style={styles.medTimeText}>{MED_TIME_LABELS[s.time]}</Text></View>
+                <View style={styles.medMgmtBadges}>
+                  <View style={styles.medTimeBadge}>
+                    <Text style={styles.medTimeText}>{MED_TIME_LABELS[s.time]}</Text>
+                  </View>
+                  {s.alarm_time && s.time !== 'anytime' && (
+                    <View style={styles.medAlarmBadge}>
+                      <Text style={styles.medAlarmBadgeText}>🕐 {s.alarm_time}</Text>
+                    </View>
+                  )}
+                </View>
                 <TouchableOpacity onPress={() => deleteMedSchedule(s.id)} style={styles.medMgmtDel}>
                   <Text style={styles.medMgmtDelText}>✕</Text>
                 </TouchableOpacity>
@@ -413,19 +425,28 @@ export default function HomeScreen() {
 
             {/* 새 일정 추가 */}
             <View style={styles.medAddRow}>
+              {/* 약 이름 */}
               <TextInput
-                style={[styles.medAddInput, { flex: 1 }]}
+                style={styles.medAddInput}
                 value={newMedName}
                 onChangeText={setNewMedName}
-                placeholder="약 이름"
+                placeholder="약 이름 입력"
                 placeholderTextColor="#9CA3AF"
               />
+
+              {/* 시간대 선택 */}
               <View style={styles.medTimeRow}>
                 {(['morning', 'evening', 'anytime'] as MedTime[]).map((t) => (
                   <TouchableOpacity
                     key={t}
                     style={[styles.medTimeBtn, newMedTime === t && styles.medTimeBtnActive]}
-                    onPress={() => setNewMedTime(t)}
+                    onPress={() => {
+                      setNewMedTime(t)
+                      // 기본 시간 자동 세팅
+                      if (t === 'morning'  && !newMedAlarmTime) setNewMedAlarmTime('08:00')
+                      if (t === 'evening'  && !newMedAlarmTime) setNewMedAlarmTime('21:00')
+                      if (t === 'anytime') setNewMedAlarmTime('')
+                    }}
                   >
                     <Text style={[styles.medTimeBtnText, newMedTime === t && styles.medTimeBtnTextActive]}>
                       {MED_TIME_LABELS[t]}
@@ -433,15 +454,41 @@ export default function HomeScreen() {
                   </TouchableOpacity>
                 ))}
               </View>
+
+              {/* 시간 직접 입력 (아침/저녁일 때만) */}
+              {newMedTime !== 'anytime' && (
+                <View style={styles.medTimeInputRow}>
+                  <Text style={styles.medTimeInputLabel}>⏰ 시간</Text>
+                  <TextInput
+                    style={styles.medTimeInput}
+                    value={newMedAlarmTime}
+                    onChangeText={(v) => {
+                      // HH:MM 자동 포맷
+                      const digits = v.replace(/\D/g, '').slice(0, 4)
+                      if (digits.length <= 2) setNewMedAlarmTime(digits)
+                      else setNewMedAlarmTime(`${digits.slice(0, 2)}:${digits.slice(2)}`)
+                    }}
+                    placeholder="HH:MM (예: 08:30)"
+                    placeholderTextColor="#9CA3AF"
+                    keyboardType="number-pad"
+                    maxLength={5}
+                  />
+                </View>
+              )}
+
               <TouchableOpacity
                 style={styles.medAddBtn}
                 onPress={() => {
                   if (!newMedName.trim()) return
-                  addMedSchedule({ petId: pet.id, name: newMedName.trim(), time: newMedTime })
+                  const alarmTime = newMedTime !== 'anytime' && newMedAlarmTime.length === 5
+                    ? newMedAlarmTime : undefined
+                  addMedSchedule({ petId: pet.id, name: newMedName.trim(), time: newMedTime, alarm_time: alarmTime })
                   setNewMedName('')
+                  setNewMedAlarmTime('')
+                  setNewMedTime('anytime')
                 }}
               >
-                <Text style={styles.medAddBtnText}>추가</Text>
+                <Text style={styles.medAddBtnText}>+ 추가</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -758,16 +805,26 @@ function getStyles(c: Colors) {
     medModalTitle: { fontSize: 17, fontWeight: '800', color: c.text },
     medModalClose: { fontSize: 18, color: c.textFaint, padding: 4 },
     medMgmtRow: {
-      flexDirection: 'row', alignItems: 'center', gap: 10,
+      flexDirection: 'row', alignItems: 'center', gap: 8,
       backgroundColor: '#F9FAFB', borderRadius: 10, padding: 12,
     },
     medMgmtName: { flex: 1, fontSize: 14, fontWeight: '600', color: '#374151' },
+    medMgmtBadges: { flexDirection: 'row', gap: 4, alignItems: 'center' },
+    medAlarmBadge: { backgroundColor: '#EFF6FF', borderRadius: 8, paddingHorizontal: 7, paddingVertical: 3 },
+    medAlarmBadgeText: { fontSize: 11, fontWeight: '600', color: '#1D4ED8' },
     medMgmtDel: { padding: 6 },
     medMgmtDelText: { fontSize: 14, color: '#EF4444', fontWeight: '700' },
-    medAddRow: { gap: 8 },
+    medAddRow: { gap: 10 },
     medAddInput: {
-      borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 10,
-      padding: 12, fontSize: 14, color: '#1F2937', backgroundColor: '#F9FAFB',
+      borderWidth: 1, borderColor: c.border, borderRadius: 10,
+      padding: 12, fontSize: 14, color: c.text, backgroundColor: c.inputBg,
+    },
+    medTimeInputRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    medTimeInputLabel: { fontSize: 13, fontWeight: '600', color: c.textMuted, width: 40 },
+    medTimeInput: {
+      flex: 1, borderWidth: 1, borderColor: '#1A73E8', borderRadius: 10,
+      padding: 11, fontSize: 15, color: c.text, backgroundColor: '#EFF6FF',
+      fontWeight: '700', textAlign: 'center', letterSpacing: 2,
     },
     medTimeRow: { flexDirection: 'row', gap: 8 },
     medTimeBtn: { flex: 1, paddingVertical: 9, borderRadius: 10, backgroundColor: '#F3F4F6', alignItems: 'center' },

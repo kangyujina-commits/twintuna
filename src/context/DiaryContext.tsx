@@ -49,6 +49,7 @@ export interface MedSchedule {
   petId: string
   name: string
   time: MedTime
+  alarm_time?: string      // HH:MM 형식, morning/evening일 때만 사용
   checkedDates: string[]   // YYYY-MM-DD 형식으로 완료한 날짜
 }
 
