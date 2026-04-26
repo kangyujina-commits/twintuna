@@ -4,7 +4,7 @@ import { useTheme } from '../../src/context/ThemeContext'
 
 function TabIcon({ emoji, focused }: { emoji: string; focused: boolean }) {
   return (
-    <Text style={{ fontSize: 22, opacity: focused ? 1 : 0.5 }}>{emoji}</Text>
+    <Text style={{ fontSize: 22, opacity: focused ? 1 : 0.7 }}>{emoji}</Text>
   )
 }
 
@@ -34,19 +34,31 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: '#1A73E8',
-        tabBarInactiveTintColor: c.textFaint,
+        tabBarInactiveTintColor: c.textMuted,
         tabBarStyle: {
           backgroundColor: c.tabBar,
+          borderTopWidth: 1,
           borderTopColor: c.tabBorder,
           height: 60,
           paddingBottom: 8,
+          elevation: 12,
+          shadowColor: '#000',
+          shadowOpacity: 0.08,
+          shadowRadius: 8,
+          shadowOffset: { width: 0, height: -2 },
         },
         tabBarLabelStyle: {
           fontSize: 9,
-          fontWeight: '600',
+          fontWeight: '700',
         },
-        headerStyle: { backgroundColor: c.card },
-        headerShadowVisible: false,
+        headerStyle: {
+          backgroundColor: c.card,
+          shadowColor: '#000',
+          shadowOpacity: 0.06,
+          shadowRadius: 4,
+          elevation: 4,
+        },
+        headerShadowVisible: true,
         headerTitleStyle: { fontWeight: '700', fontSize: 18, color: c.text },
         headerTitle: () => <HomeTitle />,
         headerRight: () => <ThemeToggleBtn />,

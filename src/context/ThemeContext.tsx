@@ -16,7 +16,7 @@ export const PALETTE = {
     chip:      '#F3F4F6',
     inputBg:   '#F9FAFB',
     tabBar:    '#FFFFFF',
-    tabBorder: '#F3F4F6',
+    tabBorder: '#D1D5DB',
   },
   dark: {
     bg:        '#0F172A',
