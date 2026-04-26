@@ -9,6 +9,8 @@ export interface PetProfile {
   birth_date: string
   weight: string
   avatar_uri?: string
+  avatar_frame?: string   // hex 색상 테두리
+  avatar_badge?: string   // 이모지 배지
 }
 
 interface PetContextValue {

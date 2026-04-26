@@ -42,6 +42,16 @@ export interface AlbumPhoto {
   caption?: string
 }
 
+export type MedTime = 'morning' | 'evening' | 'anytime'
+
+export interface MedSchedule {
+  id: string
+  petId: string
+  name: string
+  time: MedTime
+  checkedDates: string[]   // YYYY-MM-DD 형식으로 완료한 날짜
+}
+
 interface DiaryContextValue {
   records: DiaryRecord[]
   addRecord:    (r: Omit<DiaryRecord, 'id'>) => void
@@ -58,12 +68,17 @@ interface DiaryContextValue {
   albumPhotos: AlbumPhoto[]
   addAlbumPhoto:    (p: Omit<AlbumPhoto, 'id'>) => void
   deleteAlbumPhoto: (id: string) => void
+  medSchedules: MedSchedule[]
+  addMedSchedule:    (s: Omit<MedSchedule, 'id' | 'checkedDates'>) => void
+  deleteMedSchedule: (id: string) => void
+  toggleMedCheck:    (scheduleId: string, date: string) => void
 }
 
 const STORAGE_RECORDS_KEY   = '@twintuna:records'
 const STORAGE_VACCINES_KEY  = '@twintuna:vaccines'
 const STORAGE_HOSPITALS_KEY = '@twintuna:hospitals'
 const STORAGE_ALBUM_KEY     = '@twintuna:album'
+const STORAGE_MED_KEY       = '@twintuna:medSchedules'
 
 const INIT_RECORDS: DiaryRecord[] = [
   { id: '1', petId: '1', date: '2026-04-13', type: 'weight', value: 4.2 },
@@ -84,20 +99,23 @@ export function DiaryProvider({ children }: { children: ReactNode }) {
   const [vaccines,     setVaccinesState]  = useState<VaccineItem[]>(INIT_VACCINES)
   const [hospitals,    setHospitalsState] = useState<HospitalItem[]>([])
   const [albumPhotos,  setAlbumState]     = useState<AlbumPhoto[]>([])
+  const [medSchedules, setMedSchedules]   = useState<MedSchedule[]>([])
   const [loaded, setLoaded]               = useState(false)
 
   useEffect(() => {
     async function load() {
-      const [recJson, vacJson, hospJson, albumJson] = await Promise.all([
+      const [recJson, vacJson, hospJson, albumJson, medJson] = await Promise.all([
         AsyncStorage.getItem(STORAGE_RECORDS_KEY),
         AsyncStorage.getItem(STORAGE_VACCINES_KEY),
         AsyncStorage.getItem(STORAGE_HOSPITALS_KEY),
         AsyncStorage.getItem(STORAGE_ALBUM_KEY),
+        AsyncStorage.getItem(STORAGE_MED_KEY),
       ])
       if (recJson)   setRecordsState(JSON.parse(recJson))
       if (vacJson)   setVaccinesState(JSON.parse(vacJson))
       if (hospJson)  setHospitalsState(JSON.parse(hospJson))
       if (albumJson) setAlbumState(JSON.parse(albumJson))
+      if (medJson)   setMedSchedules(JSON.parse(medJson))
       setLoaded(true)
     }
     load()
@@ -123,6 +141,11 @@ export function DiaryProvider({ children }: { children: ReactNode }) {
     AsyncStorage.setItem(STORAGE_ALBUM_KEY, JSON.stringify(albumPhotos))
   }, [albumPhotos, loaded])
 
+  useEffect(() => {
+    if (!loaded) return
+    AsyncStorage.setItem(STORAGE_MED_KEY, JSON.stringify(medSchedules))
+  }, [medSchedules, loaded])
+
   const addRecord    = (r: Omit<DiaryRecord, 'id'>) => setRecordsState((p) => [{ id: Date.now().toString(), ...r }, ...p])
   const updateRecord = (r: DiaryRecord)              => setRecordsState((p) => p.map((x) => (x.id === r.id ? r : x)))
   const deleteRecord = (id: string)                  => setRecordsState((p) => p.filter((x) => x.id !== id))
@@ -138,6 +161,17 @@ export function DiaryProvider({ children }: { children: ReactNode }) {
   const addAlbumPhoto    = (p: Omit<AlbumPhoto, 'id'>) => setAlbumState((prev) => [{ id: Date.now().toString(), ...p }, ...prev])
   const deleteAlbumPhoto = (id: string)                 => setAlbumState((prev) => prev.filter((x) => x.id !== id))
 
+  const addMedSchedule = (s: Omit<MedSchedule, 'id' | 'checkedDates'>) =>
+    setMedSchedules((prev) => [...prev, { id: Date.now().toString(), checkedDates: [], ...s }])
+  const deleteMedSchedule = (id: string) =>
+    setMedSchedules((prev) => prev.filter((x) => x.id !== id))
+  const toggleMedCheck = (scheduleId: string, date: string) =>
+    setMedSchedules((prev) => prev.map((s) => {
+      if (s.id !== scheduleId) return s
+      const has = s.checkedDates.includes(date)
+      return { ...s, checkedDates: has ? s.checkedDates.filter((d) => d !== date) : [...s.checkedDates, date] }
+    }))
+
   if (!loaded) return null
 
   return (
@@ -146,6 +180,7 @@ export function DiaryProvider({ children }: { children: ReactNode }) {
       vaccines, addVaccine, updateVaccine, deleteVaccine,
       hospitals, addHospital, updateHospital, deleteHospital,
       albumPhotos, addAlbumPhoto, deleteAlbumPhoto,
+      medSchedules, addMedSchedule, deleteMedSchedule, toggleMedCheck,
     }}>
       {children}
     </DiaryContext.Provider>

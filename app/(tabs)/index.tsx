@@ -1,13 +1,14 @@
 import { useMemo, useState } from 'react'
-import { ScrollView, View, Text, StyleSheet, TouchableOpacity, Image, Modal, TextInput, KeyboardAvoidingView, Platform } from 'react-native'
+import { ScrollView, View, Text, StyleSheet, TouchableOpacity, Image, Modal, TextInput, KeyboardAvoidingView, Platform, Animated } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useRouter } from 'expo-router'
 import { usePet } from '../../src/context/PetContext'
-import { useDiary } from '../../src/context/DiaryContext'
+import { useDiary, MedTime } from '../../src/context/DiaryContext'
 import { RecordType } from '../../src/types'
 import { PetProfile } from '../../src/context/PetContext'
 import { useTheme, Colors } from '../../src/context/ThemeContext'
 import { WeightChart } from '../../src/components/WeightChart'
+import { RECORD_TYPES } from '../../src/constants/recordTypes'
 
 const TYPE_LABELS: Record<RecordType, string> = {
   weight: '체중', meal: '식사', symptom: '증상',
@@ -35,12 +36,16 @@ function formatRecord(r: { type: RecordType; value?: number; note?: string; meal
 
 export default function HomeScreen() {
   const { pet, pets, activePetId, setActivePetId } = usePet()
-  const { records, vaccines, addVaccine } = useDiary()
+  const { records, vaccines, addVaccine, medSchedules, addMedSchedule, deleteMedSchedule, toggleMedCheck } = useDiary()
   const router      = useRouter()
   const { colors: c } = useTheme()
   const styles = useMemo(() => getStyles(c), [c])
-  const [showAddVax, setShowAddVax]   = useState(false)
-  const [showChart,  setShowChart]    = useState(false)
+  const [showAddVax,   setShowAddVax]   = useState(false)
+  const [showChart,    setShowChart]    = useState(false)
+  const [showFab,      setShowFab]      = useState(false)
+  const [showMedMgmt,  setShowMedMgmt]  = useState(false)
+  const [newMedName,   setNewMedName]   = useState('')
+  const [newMedTime,   setNewMedTime]   = useState<MedTime>('anytime')
 
   const today     = todayStr()
   const todayRecs = records.filter((r) => r.petId === pet.id && r.date === today)
@@ -62,6 +67,10 @@ export default function HomeScreen() {
     })
     .filter((v) => v.daysUntil <= 3)
     .sort((a, b) => a.daysUntil - b.daysUntil)
+
+  // 오늘 투약 일정
+  const todayMeds = medSchedules.filter((s) => s.petId === pet.id)
+  const MED_TIME_LABELS: Record<MedTime, string> = { morning: '아침', evening: '저녁', anytime: '수시' }
 
   // 체중 차트 데이터 (최근 10개, 오래된 순)
   const chartData = weightRecs
@@ -170,6 +179,43 @@ export default function HomeScreen() {
           </View>
         )}
 
+        {/* 오늘 투약 체크리스트 */}
+        {todayMeds.length > 0 && (
+          <>
+            <View style={styles.sectionRow}>
+              <Text style={styles.sectionTitle}>💊 오늘 투약</Text>
+              <TouchableOpacity style={styles.sectionAddBtn} onPress={() => setShowMedMgmt(true)}>
+                <Text style={styles.sectionAddText}>관리</Text>
+              </TouchableOpacity>
+            </View>
+            {todayMeds.map((s) => {
+              const done = s.checkedDates.includes(today)
+              return (
+                <TouchableOpacity
+                  key={s.id}
+                  style={[styles.medRow, done && styles.medRowDone]}
+                  onPress={() => toggleMedCheck(s.id, today)}
+                  activeOpacity={0.7}
+                >
+                  <View style={[styles.medCheck, done && styles.medCheckDone]}>
+                    {done && <Text style={styles.medCheckTick}>✓</Text>}
+                  </View>
+                  <Text style={[styles.medName, done && styles.medNameDone]}>{s.name}</Text>
+                  <View style={styles.medTimeBadge}>
+                    <Text style={styles.medTimeText}>{MED_TIME_LABELS[s.time]}</Text>
+                  </View>
+                </TouchableOpacity>
+              )
+            })}
+          </>
+        )}
+
+        {todayMeds.length === 0 && (
+          <TouchableOpacity style={styles.medAddHint} onPress={() => setShowMedMgmt(true)}>
+            <Text style={styles.medAddHintText}>💊 투약 일정 추가하기</Text>
+          </TouchableOpacity>
+        )}
+
         {/* 오늘 할 일 */}
         {todoItems.length > 0 && (
           <>
@@ -261,6 +307,94 @@ export default function HomeScreen() {
         )}
 
       </ScrollView>
+
+      {/* FAB 빠른 기록 버튼 */}
+      <TouchableOpacity style={styles.fab} onPress={() => setShowFab(true)} activeOpacity={0.85}>
+        <Text style={styles.fabText}>＋</Text>
+      </TouchableOpacity>
+
+      {/* FAB 기록 유형 선택 모달 */}
+      <Modal visible={showFab} transparent animationType="slide" onRequestClose={() => setShowFab(false)}>
+        <TouchableOpacity style={styles.fabOverlay} activeOpacity={1} onPress={() => setShowFab(false)} />
+        <View style={styles.fabSheet}>
+          <Text style={styles.fabSheetTitle}>Quick Add / 빠른 기록</Text>
+          <View style={styles.fabTypeGrid}>
+            {RECORD_TYPES.map((t) => (
+              <TouchableOpacity
+                key={t.type}
+                style={[styles.fabTypeCard, { backgroundColor: t.color }]}
+                onPress={() => {
+                  setShowFab(false)
+                  router.push({ pathname: '/(tabs)/diary', params: { openAddType: t.type } })
+                }}
+              >
+                <Text style={{ fontSize: 26 }}>{t.emoji}</Text>
+                <Text style={styles.fabTypeLabel}>{t.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      </Modal>
+
+      {/* 투약 일정 관리 모달 */}
+      <Modal visible={showMedMgmt} transparent animationType="slide" onRequestClose={() => setShowMedMgmt(false)}>
+        <KeyboardAvoidingView style={styles.medModalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+          <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={() => setShowMedMgmt(false)} />
+          <View style={styles.medModalSheet}>
+            <View style={styles.medModalHeader}>
+              <Text style={styles.medModalTitle}>💊 Med/투약 일정 관리</Text>
+              <TouchableOpacity onPress={() => setShowMedMgmt(false)}>
+                <Text style={styles.medModalClose}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* 기존 일정 목록 */}
+            {todayMeds.map((s) => (
+              <View key={s.id} style={styles.medMgmtRow}>
+                <Text style={styles.medMgmtName}>{s.name}</Text>
+                <View style={styles.medTimeBadge}><Text style={styles.medTimeText}>{MED_TIME_LABELS[s.time]}</Text></View>
+                <TouchableOpacity onPress={() => deleteMedSchedule(s.id)} style={styles.medMgmtDel}>
+                  <Text style={styles.medMgmtDelText}>✕</Text>
+                </TouchableOpacity>
+              </View>
+            ))}
+
+            {/* 새 일정 추가 */}
+            <View style={styles.medAddRow}>
+              <TextInput
+                style={[styles.medAddInput, { flex: 1 }]}
+                value={newMedName}
+                onChangeText={setNewMedName}
+                placeholder="약 이름"
+                placeholderTextColor="#9CA3AF"
+              />
+              <View style={styles.medTimeRow}>
+                {(['morning', 'evening', 'anytime'] as MedTime[]).map((t) => (
+                  <TouchableOpacity
+                    key={t}
+                    style={[styles.medTimeBtn, newMedTime === t && styles.medTimeBtnActive]}
+                    onPress={() => setNewMedTime(t)}
+                  >
+                    <Text style={[styles.medTimeBtnText, newMedTime === t && styles.medTimeBtnTextActive]}>
+                      {MED_TIME_LABELS[t]}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              <TouchableOpacity
+                style={styles.medAddBtn}
+                onPress={() => {
+                  if (!newMedName.trim()) return
+                  addMedSchedule({ petId: pet.id, name: newMedName.trim(), time: newMedTime })
+                  setNewMedName('')
+                }}
+              >
+                <Text style={styles.medAddBtnText}>추가</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
 
       <VaccineModal
         visible={showAddVax}
@@ -430,6 +564,75 @@ function getStyles(c: Colors) {
     todoBadgeUrgent: { backgroundColor: '#FED7AA' },
     todoBadgeOverdue: { backgroundColor: '#FEE2E2' },
     todoBadgeText: { fontSize: 12, fontWeight: '800', color: '#C2410C' },
+    // FAB
+    fab: {
+      position: 'absolute', bottom: 24, right: 20,
+      width: 56, height: 56, borderRadius: 28,
+      backgroundColor: '#1A73E8', alignItems: 'center', justifyContent: 'center',
+      shadowColor: '#1A73E8', shadowOpacity: 0.5, shadowRadius: 10, elevation: 8,
+    },
+    fabText: { fontSize: 28, color: '#FFFFFF', lineHeight: 34, fontWeight: '300' },
+    fabOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)' },
+    fabSheet: {
+      backgroundColor: '#FFFFFF', borderTopLeftRadius: 24, borderTopRightRadius: 24,
+      padding: 24, paddingBottom: 32, gap: 16,
+    },
+    fabSheetTitle: { fontSize: 16, fontWeight: '800', color: '#1F2937', textAlign: 'center' },
+    fabTypeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+    fabTypeCard: { width: '30%', borderRadius: 16, paddingVertical: 16, alignItems: 'center', gap: 5 },
+    fabTypeLabel: { fontSize: 11, fontWeight: '600', color: '#374151', textAlign: 'center' },
+    // 투약 체크리스트
+    medRow: {
+      backgroundColor: '#F0FDF4', borderRadius: 12, padding: 14,
+      flexDirection: 'row', alignItems: 'center', gap: 12,
+      borderWidth: 1, borderColor: '#D1FAE5',
+    },
+    medRowDone: { backgroundColor: '#F9FAFB', borderColor: '#E5E7EB', opacity: 0.75 },
+    medCheck: {
+      width: 24, height: 24, borderRadius: 12,
+      borderWidth: 2, borderColor: '#10B981',
+      alignItems: 'center', justifyContent: 'center',
+    },
+    medCheckDone: { backgroundColor: '#10B981', borderColor: '#10B981' },
+    medCheckTick: { fontSize: 13, color: '#FFFFFF', fontWeight: '700' },
+    medName: { flex: 1, fontSize: 14, fontWeight: '600', color: '#065F46' },
+    medNameDone: { color: '#9CA3AF', textDecorationLine: 'line-through' },
+    medTimeBadge: { backgroundColor: '#D1FAE5', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 },
+    medTimeText: { fontSize: 11, fontWeight: '700', color: '#065F46' },
+    medAddHint: {
+      borderStyle: 'dashed', borderWidth: 1.5, borderColor: '#A7F3D0',
+      borderRadius: 12, padding: 14, alignItems: 'center',
+    },
+    medAddHintText: { fontSize: 13, color: '#10B981', fontWeight: '600' },
+    // 투약 관리 모달
+    medModalOverlay: { flex: 1, justifyContent: 'flex-end' },
+    medModalSheet: {
+      backgroundColor: '#FFFFFF', borderTopLeftRadius: 24, borderTopRightRadius: 24,
+      padding: 24, gap: 12,
+      shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 20, elevation: 10,
+    },
+    medModalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    medModalTitle: { fontSize: 17, fontWeight: '800', color: '#1F2937' },
+    medModalClose: { fontSize: 18, color: '#9CA3AF', padding: 4 },
+    medMgmtRow: {
+      flexDirection: 'row', alignItems: 'center', gap: 10,
+      backgroundColor: '#F9FAFB', borderRadius: 10, padding: 12,
+    },
+    medMgmtName: { flex: 1, fontSize: 14, fontWeight: '600', color: '#374151' },
+    medMgmtDel: { padding: 6 },
+    medMgmtDelText: { fontSize: 14, color: '#EF4444', fontWeight: '700' },
+    medAddRow: { gap: 8 },
+    medAddInput: {
+      borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 10,
+      padding: 12, fontSize: 14, color: '#1F2937', backgroundColor: '#F9FAFB',
+    },
+    medTimeRow: { flexDirection: 'row', gap: 8 },
+    medTimeBtn: { flex: 1, paddingVertical: 9, borderRadius: 10, backgroundColor: '#F3F4F6', alignItems: 'center' },
+    medTimeBtnActive: { backgroundColor: '#D1FAE5' },
+    medTimeBtnText: { fontSize: 13, fontWeight: '600', color: '#6B7280' },
+    medTimeBtnTextActive: { color: '#065F46', fontWeight: '700' },
+    medAddBtn: { backgroundColor: '#10B981', borderRadius: 12, padding: 14, alignItems: 'center' },
+    medAddBtnText: { fontSize: 15, fontWeight: '700', color: '#FFFFFF' },
     modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
     modalSheet: { backgroundColor: c.card, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 24, gap: 8 },
     modalTitle: { fontSize: 17, fontWeight: '800', color: c.text, marginBottom: 8, textAlign: 'center' },

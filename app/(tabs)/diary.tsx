@@ -11,6 +11,7 @@ import { RECORD_TYPES } from '../../src/constants/recordTypes'
 import { useDiary, DiaryRecord, MealType } from '../../src/context/DiaryContext'
 import { usePet, PetProfile } from '../../src/context/PetContext'
 import { analyzeSymptomPhoto, analyzeSymptomText, analyzeSymptomBoth } from '../../src/lib/anthropic'
+import { KNOWLEDGE_DATA } from '../../src/constants/knowledge'
 import { useTheme, Colors } from '../../src/context/ThemeContext'
 import { exportReport, getDateRange, filterRecords, Period } from '../../src/lib/export'
 
@@ -201,6 +202,28 @@ function RecordModal({
             <TextInput style={[styles.input, styles.inputMultiline]} value={note} onChangeText={setNote} placeholder={cfg.notePlaceholder} placeholderTextColor={c.textFaint} multiline numberOfLines={3} autoFocus={!cfg.showValue && !cfg.showMealType} />
           </View>
 
+          {/* 증상 → 관련 상식 카드 */}
+          {type === 'symptom' && note.trim().length >= 2 && (() => {
+            const q = note.toLowerCase()
+            const related = KNOWLEDGE_DATA.filter((a) =>
+              a.category === 'symptom' &&
+              a.tags.some((t) => q.includes(t.toLowerCase()))
+            ).slice(0, 3)
+            if (related.length === 0) return null
+            return (
+              <View style={styles.relatedBox}>
+                <Text style={styles.relatedTitle}>📚 관련 상식</Text>
+                {related.map((a) => (
+                  <View key={a.id} style={[styles.relatedItem, a.isEmergency && styles.relatedItemUrgent]}>
+                    {a.isEmergency && <View style={styles.relatedUrgentBadge}><Text style={styles.relatedUrgentText}>긴급</Text></View>}
+                    <Text style={styles.relatedItemTitle} numberOfLines={1}>{a.title}</Text>
+                  </View>
+                ))}
+                <Text style={styles.relatedHint}>Tips/상식 탭에서 자세히 확인하세요</Text>
+              </View>
+            )
+          })()}
+
           {cfg.showPhoto && (
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>사진 첨부 (선택)</Text>
@@ -284,7 +307,7 @@ export default function DiaryScreen() {
   const { activePet, pets, activePetId, setActivePetId } = usePet()
   const { colors: c } = useTheme()
   const styles = useMemo(() => getStyles(c), [c])
-  const { typeFilter: paramTypeFilter } = useLocalSearchParams<{ typeFilter?: string }>()
+  const { typeFilter: paramTypeFilter, openAddType: paramOpenAddType } = useLocalSearchParams<{ typeFilter?: string; openAddType?: string }>()
 
   const records = allRecords.filter((r) => r.petId === activePet.id)
 
@@ -315,6 +338,14 @@ export default function DiaryScreen() {
     }
     setViewMode('list')
   }, [paramTypeFilter])
+
+  useEffect(() => {
+    if (!paramOpenAddType) return
+    if (RECORD_TYPES.some((t) => t.type === paramOpenAddType)) {
+      setAddDate(todayStr())
+      setAddType(paramOpenAddType as RecordType)
+    }
+  }, [paramOpenAddType])
 
   const displayRecords = useMemo(() => {
     let result = viewMode === 'calendar' && selectedDate
@@ -926,6 +957,20 @@ function getStyles(c: Colors) {
       alignItems: 'center', borderWidth: 1, borderColor: '#6EE7B7',
     },
     aiSaveBtnText: { fontSize: 14, fontWeight: '700', color: '#065F46' },
+    relatedBox: {
+      backgroundColor: '#F0FDF4', borderRadius: 12, padding: 12, gap: 6,
+      borderLeftWidth: 3, borderLeftColor: '#10B981',
+    },
+    relatedTitle: { fontSize: 12, fontWeight: '700', color: '#065F46', marginBottom: 2 },
+    relatedItem: {
+      flexDirection: 'row', alignItems: 'center', gap: 6,
+      backgroundColor: '#FFFFFF', borderRadius: 8, paddingVertical: 6, paddingHorizontal: 10,
+    },
+    relatedItemUrgent: { backgroundColor: '#FEF2F2' },
+    relatedUrgentBadge: { backgroundColor: '#FEE2E2', borderRadius: 4, paddingHorizontal: 5, paddingVertical: 1 },
+    relatedUrgentText: { fontSize: 9, fontWeight: '700', color: '#DC2626' },
+    relatedItemTitle: { fontSize: 12, color: '#374151', flex: 1, fontWeight: '500' },
+    relatedHint: { fontSize: 10, color: '#6B7280', textAlign: 'right', marginTop: 2 },
     saveBtn: { backgroundColor: '#1A73E8', borderRadius: 14, padding: 16, alignItems: 'center', marginTop: 2 },
     saveBtnDisabled: { backgroundColor: '#9CA3AF' },
     saveBtnText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },

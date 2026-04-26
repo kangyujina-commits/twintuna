@@ -21,6 +21,9 @@ function confirmAlert(message: string, onConfirm: () => void) {
   }
 }
 
+const FRAME_COLORS = ['', '#1A73E8', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#374151']
+const BADGE_EMOJIS = ['', '👑', '🎀', '⭐', '🌸', '💎', '🔥', '🐾', '🎵', '✨']
+
 function formatDateInput(raw: string): string {
   const digits = raw.replace(/\D/g, '').slice(0, 8)
   if (digits.length <= 4) return digits
@@ -242,16 +245,27 @@ export default function ProfileScreen() {
                     style={[styles.petChip, isActive && styles.petChipActive]}
                     onPress={() => { if (!editing) setActivePetId(p.id) }}
                   >
-                    <View style={[styles.petChipAvatar, isActive && styles.petChipAvatarActive]}>
-                      {p.avatar_uri
-                        ? <Image source={{ uri: p.avatar_uri }} style={styles.petChipImage} />
-                        : <Image
-                            source={p.species === '고양이'
-                              ? require('../../assets/default-cat.png')
-                              : require('../../assets/default-dog.png')}
-                            style={styles.petChipDefault}
-                          />
-                      }
+                    <View style={{ position: 'relative' }}>
+                      <View style={[
+                        styles.petChipAvatar,
+                        isActive && styles.petChipAvatarActive,
+                        p.avatar_frame ? { borderColor: p.avatar_frame, borderWidth: 2 } : null,
+                      ]}>
+                        {p.avatar_uri
+                          ? <Image source={{ uri: p.avatar_uri }} style={styles.petChipImage} />
+                          : <Image
+                              source={p.species === '고양이'
+                                ? require('../../assets/default-cat.png')
+                                : require('../../assets/default-dog.png')}
+                              style={styles.petChipDefault}
+                            />
+                        }
+                      </View>
+                      {p.avatar_badge && (
+                        <View style={styles.chipBadge}>
+                          <Text style={styles.chipBadgeText}>{p.avatar_badge}</Text>
+                        </View>
+                      )}
                     </View>
                     <Text style={[styles.petChipName, isActive && styles.petChipNameActive]} numberOfLines={1}>
                       {p.name}
@@ -271,29 +285,47 @@ export default function ProfileScreen() {
           {/* 프로필 카드 */}
           <View style={styles.profileCard}>
             {editing ? (
-              <TouchableOpacity style={styles.avatarWrapper} onPress={pickAvatar}>
-                {displayPet.avatar_uri
-                  ? <Image source={{ uri: displayPet.avatar_uri }} style={styles.avatarImage} />
-                  : <Image
-                      source={displayPet.species === '고양이'
-                        ? require('../../assets/default-cat.png')
-                        : require('../../assets/default-dog.png')}
-                      style={styles.avatarDefault}
-                    />
-                }
+              <TouchableOpacity onPress={pickAvatar} style={styles.avatarDecorOuter}>
+                <View style={[styles.avatarFrame, displayPet.avatar_frame
+                  ? { borderColor: displayPet.avatar_frame, borderWidth: 4 }
+                  : { borderColor: 'transparent', borderWidth: 4 }]}>
+                  <View style={styles.avatarInner}>
+                    {displayPet.avatar_uri
+                      ? <Image source={{ uri: displayPet.avatar_uri }} style={styles.avatarImage} />
+                      : <Image
+                          source={displayPet.species === '고양이'
+                            ? require('../../assets/default-cat.png')
+                            : require('../../assets/default-dog.png')}
+                          style={styles.avatarDefault}
+                        />
+                    }
+                  </View>
+                </View>
+                {displayPet.avatar_badge
+                  ? <View style={styles.avatarBadge}><Text style={styles.avatarBadgeText}>{displayPet.avatar_badge}</Text></View>
+                  : null}
                 <View style={styles.cameraIcon}><Text style={{ fontSize: 14 }}>📷</Text></View>
               </TouchableOpacity>
             ) : (
-              <View style={styles.avatarWrapper}>
-                {displayPet.avatar_uri
-                  ? <Image source={{ uri: displayPet.avatar_uri }} style={styles.avatarImage} />
-                  : <Image
-                      source={displayPet.species === '고양이'
-                        ? require('../../assets/default-cat.png')
-                        : require('../../assets/default-dog.png')}
-                      style={styles.avatarDefault}
-                    />
-                }
+              <View style={styles.avatarDecorOuter}>
+                <View style={[styles.avatarFrame, displayPet.avatar_frame
+                  ? { borderColor: displayPet.avatar_frame, borderWidth: 4 }
+                  : { borderColor: 'transparent', borderWidth: 4 }]}>
+                  <View style={styles.avatarInner}>
+                    {displayPet.avatar_uri
+                      ? <Image source={{ uri: displayPet.avatar_uri }} style={styles.avatarImage} />
+                      : <Image
+                          source={displayPet.species === '고양이'
+                            ? require('../../assets/default-cat.png')
+                            : require('../../assets/default-dog.png')}
+                          style={styles.avatarDefault}
+                        />
+                    }
+                  </View>
+                </View>
+                {displayPet.avatar_badge
+                  ? <View style={styles.avatarBadge}><Text style={styles.avatarBadgeText}>{displayPet.avatar_badge}</Text></View>
+                  : null}
               </View>
             )}
 
@@ -320,6 +352,44 @@ export default function ProfileScreen() {
                 <Field label="체중 (kg)" styles={styles}>
                   <TextInput style={styles.input} value={draft.weight} onChangeText={(v) => setDraft((d) => ({ ...d, weight: v }))} placeholder="예: 4.2" placeholderTextColor={c.textFaint} keyboardType="decimal-pad" />
                 </Field>
+                {/* 아바타 꾸미기 */}
+                <View style={styles.decorSection}>
+                  <Text style={styles.decorTitle}>🎨 Avatar/아바타 꾸미기</Text>
+                  <Text style={styles.decorLabel}>Frame/테두리 색상</Text>
+                  <View style={styles.decorRow}>
+                    {FRAME_COLORS.map((color) => (
+                      <TouchableOpacity
+                        key={color || 'none'}
+                        style={[
+                          styles.frameColorBtn,
+                          { backgroundColor: color || '#F3F4F6', borderColor: color || '#E5E7EB' },
+                          (draft.avatar_frame ?? '') === color && styles.decorBtnActive,
+                        ]}
+                        onPress={() => setDraft((d) => ({ ...d, avatar_frame: color || undefined }))}
+                      >
+                        {!color && <Text style={{ fontSize: 10, color: '#9CA3AF' }}>✕</Text>}
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                  <Text style={styles.decorLabel}>Badge/배지 이모지</Text>
+                  <View style={styles.decorRow}>
+                    {BADGE_EMOJIS.map((emoji) => (
+                      <TouchableOpacity
+                        key={emoji || 'none'}
+                        style={[
+                          styles.badgeBtn,
+                          (draft.avatar_badge ?? '') === emoji && styles.decorBtnActive,
+                        ]}
+                        onPress={() => setDraft((d) => ({ ...d, avatar_badge: emoji || undefined }))}
+                      >
+                        <Text style={{ fontSize: emoji ? 18 : 12, color: emoji ? undefined : '#9CA3AF' }}>
+                          {emoji || '✕'}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+
                 <View style={styles.editActions}>
                   <TouchableOpacity style={styles.cancelBtn} onPress={() => setEditing(false)}><Text style={styles.cancelBtnText}>취소</Text></TouchableOpacity>
                   <TouchableOpacity style={styles.saveBtn} onPress={saveEdit}><Text style={styles.saveBtnText}>저장</Text></TouchableOpacity>
@@ -625,6 +695,12 @@ function getStyles(c: Colors) {
     petChipDefault: { width: 34, height: 34, resizeMode: 'contain' },
     petChipName: { fontSize: 11, color: c.textFaint, maxWidth: 60 },
     petChipNameActive: { color: '#1A73E8', fontWeight: '700' },
+    chipBadge: {
+      position: 'absolute', top: -2, right: -2,
+      width: 18, height: 18, borderRadius: 9,
+      backgroundColor: '#FFF', alignItems: 'center', justifyContent: 'center',
+    },
+    chipBadgeText: { fontSize: 11 },
     addPetBtn: { alignItems: 'center', gap: 4, width: 54 },
     addPetBtnText: { fontSize: 22, color: '#1A73E8', lineHeight: 28 },
     addPetBtnLabel: { fontSize: 11, color: '#1A73E8', fontWeight: '600' },
@@ -633,19 +709,44 @@ function getStyles(c: Colors) {
       alignItems: 'center', gap: 6, marginBottom: 4,
       shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 10, elevation: 3,
     },
-    avatarWrapper: {
-      marginBottom: 4, position: 'relative',
-      width: 100, height: 100, borderRadius: 50,
+    avatarDecorOuter: { position: 'relative', marginBottom: 4, alignItems: 'center', justifyContent: 'center' },
+    avatarFrame: {
+      width: 108, height: 108, borderRadius: 54,
+      alignItems: 'center', justifyContent: 'center',
+    },
+    avatarInner: {
+      width: 96, height: 96, borderRadius: 48,
       backgroundColor: '#EEF2FF', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
     },
-    avatarImage: { width: 74, height: 74, borderRadius: 37, resizeMode: 'cover' },
-    avatarDefault: { width: 68, height: 68, resizeMode: 'contain' },
-    cameraIcon: {
-      position: 'absolute', bottom: 0, right: 0,
+    avatarBadge: {
+      position: 'absolute', top: 2, right: 2,
       width: 28, height: 28, borderRadius: 14,
       backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center',
       shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 4, elevation: 3,
     },
+    avatarBadgeText: { fontSize: 16 },
+    avatarImage: { width: 80, height: 80, borderRadius: 40, resizeMode: 'cover' },
+    avatarDefault: { width: 68, height: 68, resizeMode: 'contain' },
+    cameraIcon: {
+      position: 'absolute', bottom: 4, right: 4,
+      width: 26, height: 26, borderRadius: 13,
+      backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center',
+      shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 4, elevation: 3,
+    },
+    decorSection: { gap: 8, backgroundColor: '#F9FAFB', borderRadius: 14, padding: 14 },
+    decorTitle: { fontSize: 13, fontWeight: '700', color: '#374151' },
+    decorLabel: { fontSize: 11, fontWeight: '600', color: '#6B7280' },
+    decorRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    frameColorBtn: {
+      width: 30, height: 30, borderRadius: 15,
+      borderWidth: 2, alignItems: 'center', justifyContent: 'center',
+    },
+    badgeBtn: {
+      width: 36, height: 36, borderRadius: 10,
+      backgroundColor: '#F3F4F6', borderWidth: 2, borderColor: 'transparent',
+      alignItems: 'center', justifyContent: 'center',
+    },
+    decorBtnActive: { borderColor: '#1A73E8', borderWidth: 2.5 },
     petName: { fontSize: 24, fontWeight: '800', color: c.text },
     petSub: { fontSize: 14, color: c.textMuted },
     statsGrid: {
