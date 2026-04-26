@@ -136,6 +136,12 @@ export default function AlbumScreen() {
               <Image source={{ uri: item.photo_uri }} style={styles.thumbImg} />
               <View style={styles.thumbOverlay}>
                 <Text style={styles.thumbDate}>{item.date.slice(5)}</Text>
+                {(() => {
+                  const text = item.kind === 'album' ? item.caption : item.note
+                  return text ? (
+                    <Text style={styles.thumbCaption} numberOfLines={1}>{text}</Text>
+                  ) : null
+                })()}
               </View>
               {item.kind === 'album' && (
                 <View style={styles.albumBadge}><Text style={styles.albumBadgeText}>📸</Text></View>
@@ -244,6 +250,7 @@ function getStyles(c: Colors) {
       backgroundColor: 'rgba(0,0,0,0.35)', paddingVertical: 3, alignItems: 'center',
     },
     thumbDate: { fontSize: 10, color: '#FFF', fontWeight: '600' },
+    thumbCaption: { fontSize: 9, color: 'rgba(255,255,255,0.85)', paddingHorizontal: 4, textAlign: 'center' },
     albumBadge: { position: 'absolute', top: 4, right: 4 },
     albumBadgeText: { fontSize: 12 },
     empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, padding: 32 },
@@ -271,7 +278,7 @@ function getStyles(c: Colors) {
       backgroundColor: c.card, borderTopLeftRadius: 24, borderTopRightRadius: 24,
       padding: 24, gap: 12,
     },
-    captionPreview: { width: '100%', height: 160, borderRadius: 14 },
+    captionPreview: { width: '100%', height: 90, borderRadius: 12 },
     captionLabel: { fontSize: 13, fontWeight: '600', color: c.textSub },
     captionInput: {
       borderWidth: 1, borderColor: c.border, borderRadius: 12,
