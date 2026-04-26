@@ -224,6 +224,7 @@ function getStyles(c: Colors) {
       flexDirection: 'row', alignItems: 'center', gap: 6,
       paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
       backgroundColor: c.chip, borderWidth: 1.5, borderColor: 'transparent',
+      minWidth: 110, justifyContent: 'center',
     },
     switcherChipActive: { backgroundColor: '#EFF6FF', borderColor: '#1A73E8' },
     switcherEmoji: { fontSize: 15 },
