@@ -829,7 +829,7 @@ function getStyles(c: Colors) {
     medTimeInputLabel: { fontSize: 16 },
     medTimeHMInput: {
       width: 52, borderWidth: 1.5, borderColor: '#1A73E8', borderRadius: 10,
-      paddingVertical: 10, fontSize: 18, color: c.text, backgroundColor: '#EFF6FF',
+      paddingVertical: 10, fontSize: 18, color: '#1E40AF', backgroundColor: '#EFF6FF',
       fontWeight: '700', textAlign: 'center',
     },
     medTimeSep: { fontSize: 20, fontWeight: '800', color: '#1A73E8' },
