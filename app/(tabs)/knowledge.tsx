@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { ScrollView, View, Text, StyleSheet, TouchableOpacity } from 'react-native'
+import { ScrollView, View, Text, StyleSheet, TouchableOpacity, TextInput } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { KNOWLEDGE_DATA } from '../../src/constants/knowledge'
 import { KnowledgeArticle, Species, ColorItem } from '../../src/types'
@@ -22,12 +22,23 @@ const URGENCY_LABELS: Record<ColorItem['urgency'], string> = {
 export default function KnowledgeScreen() {
   const [filter,     setFilter]     = useState<Species>('all')
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [query,      setQuery]      = useState('')
   const { colors: c } = useTheme()
   const styles = useMemo(() => getStyles(c), [c])
 
-  const filtered = KNOWLEDGE_DATA.filter(
-    (a) => filter === 'all' || a.species === filter || a.species === 'all'
-  )
+  const q = query.trim().toLowerCase()
+
+  const filtered = KNOWLEDGE_DATA.filter((a) => {
+    const matchSpecies = filter === 'all' || a.species === filter || a.species === 'all'
+    if (!matchSpecies) return false
+    if (!q) return true
+    return (
+      a.title.toLowerCase().includes(q) ||
+      a.summary.toLowerCase().includes(q) ||
+      a.tags.some((t) => t.toLowerCase().includes(q))
+    )
+  })
+
   const selected = KNOWLEDGE_DATA.find((a) => a.id === selectedId)
 
   if (selected) {
@@ -37,6 +48,25 @@ export default function KnowledgeScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['bottom']}>
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
+
+        {/* 검색바 */}
+        <View style={styles.searchBar}>
+          <Text style={styles.searchIcon}>🔍</Text>
+          <TextInput
+            style={styles.searchInput}
+            value={query}
+            onChangeText={setQuery}
+            placeholder="Search/검색 (제목, 요약, 태그)"
+            placeholderTextColor={c.textFaint}
+            returnKeyType="search"
+            clearButtonMode="while-editing"
+          />
+          {query.length > 0 && (
+            <TouchableOpacity onPress={() => setQuery('')} style={styles.searchClear}>
+              <Text style={styles.searchClearText}>✕</Text>
+            </TouchableOpacity>
+          )}
+        </View>
 
         <View style={styles.filterRow}>
           {FILTERS.map((f) => (
@@ -49,6 +79,12 @@ export default function KnowledgeScreen() {
             </TouchableOpacity>
           ))}
         </View>
+
+        {filtered.length === 0 && (
+          <View style={styles.noResult}>
+            <Text style={styles.noResultText}>검색 결과가 없어요 🔎</Text>
+          </View>
+        )}
 
         {filtered.filter((a) => a.isEmergency).map((a) => (
           <ArticleCard key={a.id} article={a} onPress={() => setSelectedId(a.id)} />
@@ -234,6 +270,18 @@ function getStyles(c: Colors) {
     safe: { flex: 1, backgroundColor: c.bg },
     scroll: { flex: 1 },
     content: { padding: 16, gap: 12 },
+    searchBar: {
+      flexDirection: 'row', alignItems: 'center', gap: 8,
+      backgroundColor: c.card, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 10,
+      borderWidth: 1, borderColor: c.border,
+      shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 1,
+    },
+    searchIcon: { fontSize: 15 },
+    searchInput: { flex: 1, fontSize: 14, color: c.text },
+    searchClear: { padding: 2 },
+    searchClearText: { fontSize: 13, color: c.textFaint, fontWeight: '700' },
+    noResult: { alignItems: 'center', paddingVertical: 40 },
+    noResultText: { fontSize: 14, color: c.textFaint },
     filterRow: { flexDirection: 'row', gap: 8, marginBottom: 4 },
     filterBtn: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: c.chip },
     filterBtnActive: { backgroundColor: '#1A73E8' },
