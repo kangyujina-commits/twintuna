@@ -49,13 +49,13 @@ export default function TabLayout() {
         headerShadowVisible: false,
         headerTitleStyle: { fontWeight: '700', fontSize: 18, color: c.text },
         headerTitle: () => <HomeTitle />,
+        headerRight: () => <ThemeToggleBtn />,
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
           title: 'Home/홈',
-          headerRight: () => <ThemeToggleBtn />,
           tabBarIcon: ({ focused }) => <TabIcon emoji="🏠" focused={focused} />,
         }}
       />
