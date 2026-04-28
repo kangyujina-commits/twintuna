@@ -1,12 +1,15 @@
 import { useState, useMemo } from 'react'
 import {
   View, Text, StyleSheet, TouchableOpacity, TextInput,
-  KeyboardAvoidingView, Platform, ScrollView, Image,
+  KeyboardAvoidingView, Platform, ScrollView, Image, ImageBackground, Dimensions,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import { LinearGradient } from 'expo-linear-gradient'
 import { useRouter } from 'expo-router'
 import { usePet, PetProfile } from '../src/context/PetContext'
 import { useTheme, Colors } from '../src/context/ThemeContext'
+
+const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window')
 
 type Step = 'welcome' | 'select' | 'species' | 'details'
 
@@ -51,25 +54,43 @@ export default function OnboardingScreen() {
   // ── 웰컴
   if (step === 'welcome') {
     return (
-      <SafeAreaView style={styles.safe}>
-        <View style={styles.center}>
-          <Text style={styles.logo}>🐾</Text>
-          <Text style={styles.title}>TwinTuna_Paws</Text>
-          <Text style={styles.subtitle}>
-            반려동물의 건강을 기록하고{'\n'}관리하는 스마트 다이어리
-          </Text>
-          <View style={styles.featureList}>
-            {['📋 건강 기록 & 일지', '💉 예방접종 스케줄', '🏥 병원 즐겨찾기', '📊 체중 & 건강 트렌드'].map((f) => (
-              <View key={f} style={styles.featureRow}>
-                <Text style={styles.featureText}>{f}</Text>
-              </View>
-            ))}
+      <ImageBackground
+        source={require('../assets/main.png')}
+        style={{ flex: 1, width: SCREEN_W, height: SCREEN_H }}
+        resizeMode="cover"
+      >
+        <LinearGradient
+          colors={['rgba(255,255,255,0.0)', 'rgba(20,10,50,0.90)']}
+          style={{ flex: 1, justifyContent: 'flex-end' }}
+        >
+          <View style={styles.welcomeBottom}>
+            <View style={styles.welcomeLogoRow}>
+              <Text style={styles.welcomeLogoEmoji}>🐾</Text>
+              <Text style={styles.welcomeLogoText}>TwinTuna_Paws</Text>
+            </View>
+            <Text style={styles.welcomeSubtitle}>
+              반려동물의 건강을 기록하고{'\n'}관리하는 스마트 다이어리
+            </Text>
+            <View style={styles.welcomeFeatures}>
+              {['📋  건강 기록 & 일지', '💉  예방접종 스케줄', '🏥  병원 즐겨찾기', '📊  체중 & 건강 트렌드'].map((f) => (
+                <View key={f} style={styles.welcomeFeatureRow}>
+                  <Text style={styles.welcomeFeatureText}>{f}</Text>
+                </View>
+              ))}
+            </View>
+            <TouchableOpacity onPress={() => setStep('select')} activeOpacity={0.85}>
+              <LinearGradient
+                colors={['#F9A8D4', '#818CF8']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.welcomeStartBtn}
+              >
+                <Text style={styles.welcomeStartBtnText}>시작하기  →</Text>
+              </LinearGradient>
+            </TouchableOpacity>
           </View>
-          <TouchableOpacity style={styles.primaryBtn} onPress={() => setStep('select')}>
-            <Text style={styles.primaryBtnText}>시작하기 →</Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
+        </LinearGradient>
+      </ImageBackground>
     )
   }
 
@@ -205,6 +226,23 @@ export default function OnboardingScreen() {
 
 function getStyles(c: Colors) {
   return StyleSheet.create({
+    // 웰컴 화면
+    welcomeBottom: { padding: 32, paddingBottom: 56, gap: 16 },
+    welcomeLogoRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    welcomeLogoEmoji: { fontSize: 28 },
+    welcomeLogoText: { fontSize: 26, fontWeight: '900', color: '#FFFFFF', letterSpacing: 0.5 },
+    welcomeSubtitle: { fontSize: 15, color: 'rgba(255,255,255,0.85)', lineHeight: 24 },
+    welcomeFeatures: { gap: 8, marginVertical: 4 },
+    welcomeFeatureRow: {
+      backgroundColor: 'rgba(255,255,255,0.12)',
+      borderRadius: 12, paddingHorizontal: 16, paddingVertical: 10,
+    },
+    welcomeFeatureText: { fontSize: 14, color: '#FFFFFF', fontWeight: '500' },
+    welcomeStartBtn: {
+      borderRadius: 28, paddingVertical: 18, alignItems: 'center', marginTop: 8,
+    },
+    welcomeStartBtnText: { fontSize: 17, fontWeight: '800', color: '#FFFFFF', letterSpacing: 0.5 },
+    // 기존
     safe: { flex: 1, backgroundColor: c.bg },
     center: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 16 },
     formContent: { padding: 32, gap: 8 },

@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
-import { ScrollView, View, Text, StyleSheet, TouchableOpacity, Image, Modal, TextInput, KeyboardAvoidingView, Platform, Animated } from 'react-native'
+import { ScrollView, View, Text, StyleSheet, TouchableOpacity, Image, Modal, TextInput, KeyboardAvoidingView, Platform, Animated, ImageBackground } from 'react-native'
+import { LinearGradient } from 'expo-linear-gradient'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useRouter } from 'expo-router'
 import { usePet } from '../../src/context/PetContext'
@@ -143,56 +144,70 @@ export default function HomeScreen() {
     <SafeAreaView style={styles.safe} edges={['bottom']}>
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
 
-        {pets.length > 1 && (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.switcherScroll}>
-            <View style={styles.switcherRow}>
-              {pets.map((p: PetProfile) => (
-                <TouchableOpacity
-                  key={p.id}
-                  style={[styles.switcherChip, p.id === activePetId && styles.switcherChipActive]}
-                  onPress={() => setActivePetId(p.id)}
-                >
-                  <Text style={styles.switcherEmoji}>{p.species === '고양이' ? '🐱' : '🐶'}</Text>
-                  <Text style={[styles.switcherName, p.id === activePetId && styles.switcherNameActive]}>
-                    {p.name}
+        {/* 히어로 배너 */}
+        <ImageBackground
+          source={require('../../assets/main.png')}
+          style={styles.hero}
+          resizeMode="cover"
+        >
+          <LinearGradient
+            colors={['rgba(0,0,0,0.05)', 'rgba(0,0,0,0.60)']}
+            style={styles.heroGradient}
+          >
+            {/* 생일 배너 */}
+            {isBirthday && (
+              <View style={styles.birthdayBanner}>
+                <Text style={styles.birthdayEmoji}>🎂🎉</Text>
+                <View style={styles.birthdayInfo}>
+                  <Text style={styles.birthdayTitleHero}>Happy Birthday, {pet.name}!</Text>
+                  <Text style={styles.birthdaySubHero}>
+                    만 {petAge !== null ? `${petAge}살` : ''} · 생일 축하해요 🥳
                   </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </ScrollView>
-        )}
+                </View>
+              </View>
+            )}
 
-        {/* 생일 배너 */}
-        {isBirthday && (
-          <View style={styles.birthdayBanner}>
-            <Text style={styles.birthdayEmoji}>🎂🎉</Text>
-            <View style={styles.birthdayInfo}>
-              <Text style={styles.birthdayTitle}>Happy Birthday, {pet.name}!</Text>
-              <Text style={styles.birthdaySub}>
-                오늘은 {pet.name}의 생일이에요{petAge !== null ? ` · 만 ${petAge}살` : ''}! 🥳
-              </Text>
-            </View>
-          </View>
-        )}
+            {/* 반려동물 선택기 */}
+            {pets.length > 1 && (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                <View style={styles.switcherRow}>
+                  {pets.map((p: PetProfile) => (
+                    <TouchableOpacity
+                      key={p.id}
+                      style={[styles.switcherChip, p.id === activePetId && styles.switcherChipActive]}
+                      onPress={() => setActivePetId(p.id)}
+                    >
+                      <Text style={styles.switcherEmoji}>{p.species === '고양이' ? '🐱' : '🐶'}</Text>
+                      <Text style={[styles.switcherName, p.id === activePetId && styles.switcherNameActive]}>
+                        {p.name}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </ScrollView>
+            )}
 
-        <View style={styles.petCard}>
-          <View style={styles.petAvatar}>
-            {pet.avatar_uri
-              ? <Image source={{ uri: pet.avatar_uri }} style={styles.petAvatarImage} />
-              : <Image
-                  source={pet.species === '고양이'
-                    ? require('../../assets/default-cat.png')
-                    : require('../../assets/default-dog.png')}
-                  style={styles.petAvatarDefault}
-                />
-            }
-          </View>
-          <View style={styles.petInfo}>
-            <Text style={styles.petName}>{pet.name}</Text>
-            <Text style={styles.petSub}>{pet.breed}  ·  {pet.weight} kg</Text>
-            {pet.birth_date ? <Text style={styles.petBirth}>🎂 {pet.birth_date}</Text> : null}
-          </View>
-        </View>
+            {/* 반려동물 정보 */}
+            <View style={styles.heroPetRow}>
+              <View style={styles.heroAvatarRing}>
+                {pet.avatar_uri
+                  ? <Image source={{ uri: pet.avatar_uri }} style={styles.heroAvatarImg} />
+                  : <Image
+                      source={pet.species === '고양이'
+                        ? require('../../assets/default-cat.png')
+                        : require('../../assets/default-dog.png')}
+                      style={styles.heroAvatarDefault}
+                    />
+                }
+              </View>
+              <View>
+                <Text style={styles.heroPetName}>{pet.name}</Text>
+                <Text style={styles.heroPetSub}>{pet.breed}  ·  {pet.weight} kg</Text>
+                {pet.birth_date ? <Text style={styles.heroPetBirth}>🎂 {pet.birth_date}</Text> : null}
+              </View>
+            </View>
+          </LinearGradient>
+        </ImageBackground>
 
         {/* 체중 트렌드 */}
         {latestW && (
@@ -668,32 +683,34 @@ function getStyles(c: Colors) {
   return StyleSheet.create({
     safe: { flex: 1, backgroundColor: c.bg },
     scroll: { flex: 1 },
-    content: { padding: 16, gap: 8 },
-    petCard: {
-      backgroundColor: c.card, borderRadius: 16, padding: 16,
-      flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 8,
-      shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, elevation: 2,
+    content: { gap: 8, paddingBottom: 16 },
+    // 히어로
+    hero: { width: '100%', height: 220, marginBottom: 8 },
+    heroGradient: { flex: 1, justifyContent: 'space-between', padding: 16, paddingBottom: 20 },
+    heroPetRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+    heroAvatarRing: {
+      width: 68, height: 68, borderRadius: 34,
+      borderWidth: 3, borderColor: 'rgba(255,255,255,0.85)',
+      backgroundColor: '#EEF2FF',
+      alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
     },
-    petAvatar: {
-      width: 64, height: 64, borderRadius: 32,
-      backgroundColor: '#EEF2FF', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
-    },
-    petAvatarImage: { width: 64, height: 64, resizeMode: 'cover' },
-    petAvatarDefault: { width: 44, height: 44, resizeMode: 'contain' },
-    petInfo: { flex: 1 },
-    petName: { fontSize: 20, fontWeight: '700', color: c.text },
-    petSub: { fontSize: 13, color: c.textMuted, marginTop: 2 },
-    petBirth: { fontSize: 12, color: c.textFaint, marginTop: 2 },
+    heroAvatarImg: { width: 68, height: 68, borderRadius: 34, resizeMode: 'cover' },
+    heroAvatarDefault: { width: 46, height: 46, resizeMode: 'contain' },
+    heroPetName: { fontSize: 22, fontWeight: '800', color: '#FFFFFF' },
+    heroPetSub: { fontSize: 13, color: 'rgba(255,255,255,0.85)', marginTop: 2 },
+    heroPetBirth: { fontSize: 11, color: 'rgba(255,255,255,0.7)', marginTop: 2 },
+    birthdayTitleHero: { fontSize: 14, fontWeight: '800', color: '#FEF3C7' },
+    birthdaySubHero: { fontSize: 12, color: 'rgba(255,255,255,0.85)', marginTop: 1 },
     sectionTitle: { fontSize: 15, fontWeight: '700', color: c.textSub, marginTop: 12, marginBottom: 6 },
     recordRow: {
-      backgroundColor: c.card, borderRadius: 12, padding: 14,
+      backgroundColor: c.card, borderRadius: 12, padding: 14, marginHorizontal: 16,
       flexDirection: 'row', alignItems: 'center',
       shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 1,
     },
     recordLabel: { fontSize: 13, fontWeight: '600', color: c.textSub, width: 48 },
     recordValue: { flex: 1, fontSize: 14, color: c.text },
     scheduleRow: {
-      backgroundColor: c.card, borderRadius: 12, padding: 14,
+      backgroundColor: c.card, borderRadius: 12, padding: 14, marginHorizontal: 16,
       flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
       shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 1,
     },
@@ -702,7 +719,7 @@ function getStyles(c: Colors) {
     ddayUrgent: { backgroundColor: '#FEE2E2' },
     ddayText: { fontSize: 12, fontWeight: '700', color: '#4338CA' },
     ddayTextUrgent: { color: '#DC2626' },
-    emptyCard: { backgroundColor: c.chip, borderRadius: 12, padding: 18, alignItems: 'center' },
+    emptyCard: { backgroundColor: c.chip, borderRadius: 12, padding: 18, alignItems: 'center', marginHorizontal: 16 },
     emptyText: { color: c.textFaint, fontSize: 13 },
     switcherScroll: { marginBottom: 4 },
     switcherRow: { flexDirection: 'row', gap: 8, paddingVertical: 2 },
@@ -715,11 +732,11 @@ function getStyles(c: Colors) {
     switcherEmoji: { fontSize: 16 },
     switcherName: { fontSize: 13, fontWeight: '600', color: c.textMuted },
     switcherNameActive: { color: '#1A73E8' },
-    sectionRow: { flexDirection: 'row', alignItems: 'center', marginTop: 12, marginBottom: 6 },
+    sectionRow: { flexDirection: 'row', alignItems: 'center', marginTop: 12, marginBottom: 6, paddingHorizontal: 16 },
     sectionAddBtn: { marginLeft: 'auto', backgroundColor: '#EFF6FF', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 },
     sectionAddText: { fontSize: 12, fontWeight: '700', color: '#1A73E8' },
     weightCard: {
-      backgroundColor: c.card, borderRadius: 14, padding: 14,
+      backgroundColor: c.card, borderRadius: 14, padding: 14, marginHorizontal: 16,
       shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 1,
     },
     weightCardTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
@@ -739,7 +756,7 @@ function getStyles(c: Colors) {
     chartToggleBtn: { backgroundColor: '#EFF6FF', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 },
     chartToggleText: { fontSize: 12, fontWeight: '700', color: '#1A73E8' },
     reportGrid: {
-      flexDirection: 'row', flexWrap: 'wrap', gap: 8,
+      flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 16,
     },
     reportCell: {
       flex: 1, minWidth: '45%', backgroundColor: c.card, borderRadius: 14, padding: 16,
@@ -749,7 +766,7 @@ function getStyles(c: Colors) {
     reportNum: { fontSize: 22, fontWeight: '800', color: c.text },
     reportLabel: { fontSize: 11, color: c.textFaint, fontWeight: '600' },
     todoRow: {
-      backgroundColor: '#FFF7ED', borderRadius: 12, padding: 14,
+      backgroundColor: '#FFF7ED', borderRadius: 12, padding: 14, marginHorizontal: 16,
       flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
       borderLeftWidth: 3, borderLeftColor: '#F97316',
       shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 1,
@@ -779,7 +796,7 @@ function getStyles(c: Colors) {
     fabTypeLabel: { fontSize: 11, fontWeight: '600', color: '#374151', textAlign: 'center' },
     // 투약 체크리스트
     medRow: {
-      backgroundColor: '#F0FDF4', borderRadius: 12, padding: 14,
+      backgroundColor: '#F0FDF4', borderRadius: 12, padding: 14, marginHorizontal: 16,
       flexDirection: 'row', alignItems: 'center', gap: 12,
       borderWidth: 1, borderColor: '#D1FAE5',
     },
@@ -797,7 +814,7 @@ function getStyles(c: Colors) {
     medTimeText: { fontSize: 11, fontWeight: '700', color: '#065F46' },
     medAddHint: {
       borderStyle: 'dashed', borderWidth: 1.5, borderColor: '#A7F3D0',
-      borderRadius: 12, padding: 14, alignItems: 'center',
+      borderRadius: 12, padding: 14, alignItems: 'center', marginHorizontal: 16,
     },
     medAddHintText: { fontSize: 13, color: '#10B981', fontWeight: '600' },
     // 투약 관리 모달
