@@ -146,6 +146,28 @@ export default function HomeScreen() {
     <SafeAreaView style={styles.safe} edges={['bottom']}>
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
 
+        {/* 반려동물 선택기 — 배너 밖 */}
+        {pets.length > 1 && (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.switcherScroll}>
+            <View style={styles.switcherRow}>
+              {pets.map((p: PetProfile) => (
+                <TouchableOpacity
+                  key={p.id}
+                  style={styles.switcherChip}
+                  onPress={() => setActivePetId(p.id)}
+                >
+                  <View style={[styles.switcherEmojiCircle, p.id === activePetId && styles.switcherEmojiCircleActive]}>
+                    <Text style={styles.switcherEmoji}>{p.species === '고양이' ? '🐱' : '🐶'}</Text>
+                  </View>
+                  <Text style={[styles.switcherName, p.id === activePetId && styles.switcherNameActive]}>
+                    {p.name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </ScrollView>
+        )}
+
         {/* 히어로 배너 */}
         <ImageBackground
           source={appSettings.heroUri ? { uri: appSettings.heroUri } : require('../../assets/main.png')}
@@ -167,28 +189,6 @@ export default function HomeScreen() {
                   </Text>
                 </View>
               </View>
-            )}
-
-            {/* 반려동물 선택기 */}
-            {pets.length > 1 && (
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                <View style={styles.switcherRow}>
-                  {pets.map((p: PetProfile) => (
-                    <TouchableOpacity
-                      key={p.id}
-                      style={styles.switcherChip}
-                      onPress={() => setActivePetId(p.id)}
-                    >
-                      <View style={[styles.switcherEmojiCircle, p.id === activePetId && styles.switcherEmojiCircleActive]}>
-                        <Text style={styles.switcherEmoji}>{p.species === '고양이' ? '🐱' : '🐶'}</Text>
-                      </View>
-                      <Text style={[styles.switcherName, p.id === activePetId && styles.switcherNameActive]}>
-                        {p.name}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </ScrollView>
             )}
 
             {/* 반려동물 정보 */}
@@ -725,24 +725,22 @@ function getStyles(c: Colors, bannerHeight = 220, accent = '#1A73E8') {
     ddayTextUrgent: { color: '#DC2626' },
     emptyCard: { backgroundColor: c.chip, borderRadius: 12, padding: 18, alignItems: 'center', marginHorizontal: 16 },
     emptyText: { color: c.textFaint, fontSize: 13 },
-    switcherScroll: { marginBottom: 4 },
-    switcherRow: { flexDirection: 'row', gap: 12, paddingVertical: 2 },
-    switcherChip: {
-      width: 72, alignItems: 'center', gap: 5,
-    },
+    switcherScroll: { paddingHorizontal: 16, paddingVertical: 10, backgroundColor: c.bg },
+    switcherRow: { flexDirection: 'row', gap: 16 },
+    switcherChip: { width: 72, alignItems: 'center', gap: 5 },
     switcherEmojiCircle: {
-      width: 44, height: 44, borderRadius: 22,
-      backgroundColor: 'rgba(255,255,255,0.2)',
+      width: 48, height: 48, borderRadius: 24,
+      backgroundColor: c.chip,
       alignItems: 'center', justifyContent: 'center',
       borderWidth: 2, borderColor: 'transparent',
     },
     switcherEmojiCircleActive: {
-      backgroundColor: 'rgba(255,255,255,0.95)',
+      backgroundColor: '#EFF6FF',
       borderColor: accent,
     },
-    switcherEmoji: { fontSize: 22 },
-    switcherName: { fontSize: 11, fontWeight: '700', color: 'rgba(255,255,255,0.8)', textAlign: 'center' },
-    switcherNameActive: { color: '#FFF' },
+    switcherEmoji: { fontSize: 24 },
+    switcherName: { fontSize: 11, fontWeight: '700', color: c.textMuted, textAlign: 'center' },
+    switcherNameActive: { color: accent },
     sectionRow: { flexDirection: 'row', alignItems: 'center', marginTop: 12, marginBottom: 6, paddingHorizontal: 16 },
     sectionAddBtn: { marginLeft: 'auto', backgroundColor: '#EFF6FF', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 },
     sectionAddText: { fontSize: 12, fontWeight: '700', color: accent },
