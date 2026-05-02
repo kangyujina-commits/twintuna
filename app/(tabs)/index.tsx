@@ -8,6 +8,7 @@ import { useDiary, MedTime } from '../../src/context/DiaryContext'
 import { RecordType } from '../../src/types'
 import { PetProfile } from '../../src/context/PetContext'
 import { useTheme, Colors } from '../../src/context/ThemeContext'
+import { useAppSettings } from '../../src/context/AppSettingsContext'
 import { WeightChart } from '../../src/components/WeightChart'
 import { RECORD_TYPES } from '../../src/constants/recordTypes'
 
@@ -40,7 +41,8 @@ export default function HomeScreen() {
   const { records, vaccines, addVaccine, medSchedules, addMedSchedule, deleteMedSchedule, toggleMedCheck } = useDiary()
   const router      = useRouter()
   const { colors: c } = useTheme()
-  const styles = useMemo(() => getStyles(c), [c])
+  const { settings: appSettings } = useAppSettings()
+  const styles = useMemo(() => getStyles(c, appSettings.bannerHeight, appSettings.accentColor), [c, appSettings.bannerHeight, appSettings.accentColor])
   const [showAddVax,   setShowAddVax]   = useState(false)
   const [showAnnual,   setShowAnnual]   = useState(false)
   const [annualYear,   setAnnualYear]   = useState(() => new Date().getFullYear())
@@ -146,7 +148,7 @@ export default function HomeScreen() {
 
         {/* 히어로 배너 */}
         <ImageBackground
-          source={require('../../assets/main.png')}
+          source={appSettings.heroUri ? { uri: appSettings.heroUri } : require('../../assets/main.png')}
           style={styles.hero}
           resizeMode="cover"
         >
@@ -679,13 +681,13 @@ function EmptyCard({ message, styles }: { message: string; styles: ReturnType<ty
   )
 }
 
-function getStyles(c: Colors) {
+function getStyles(c: Colors, bannerHeight = 220, accent = '#1A73E8') {
   return StyleSheet.create({
     safe: { flex: 1, backgroundColor: c.bg },
     scroll: { flex: 1 },
     content: { gap: 8, paddingBottom: 16 },
     // 히어로
-    hero: { width: '100%', height: 220, marginBottom: 8 },
+    hero: { width: '100%', height: bannerHeight, marginBottom: 8 },
     heroGradient: { flex: 1, justifyContent: 'space-between', padding: 16, paddingBottom: 20 },
     heroPetRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },
     heroAvatarRing: {
@@ -728,13 +730,13 @@ function getStyles(c: Colors) {
       paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
       backgroundColor: c.chip, borderWidth: 1.5, borderColor: 'transparent',
     },
-    switcherChipActive: { backgroundColor: '#EFF6FF', borderColor: '#1A73E8' },
+    switcherChipActive: { backgroundColor: '#EFF6FF', borderColor: accent },
     switcherEmoji: { fontSize: 16 },
     switcherName: { fontSize: 13, fontWeight: '600', color: c.textMuted },
-    switcherNameActive: { color: '#1A73E8' },
+    switcherNameActive: { color: accent },
     sectionRow: { flexDirection: 'row', alignItems: 'center', marginTop: 12, marginBottom: 6, paddingHorizontal: 16 },
     sectionAddBtn: { marginLeft: 'auto', backgroundColor: '#EFF6FF', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 },
-    sectionAddText: { fontSize: 12, fontWeight: '700', color: '#1A73E8' },
+    sectionAddText: { fontSize: 12, fontWeight: '700', color: accent },
     weightCard: {
       backgroundColor: c.card, borderRadius: 14, padding: 14, marginHorizontal: 16,
       shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 1,
@@ -754,7 +756,7 @@ function getStyles(c: Colors) {
     wDiffStable: { backgroundColor: '#F3F4F6', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 5 },
     wDiffTextStable: { fontSize: 12, color: '#6B7280', fontWeight: '600' },
     chartToggleBtn: { backgroundColor: '#EFF6FF', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 },
-    chartToggleText: { fontSize: 12, fontWeight: '700', color: '#1A73E8' },
+    chartToggleText: { fontSize: 12, fontWeight: '700', color: accent },
     reportGrid: {
       flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 16,
     },
@@ -780,8 +782,8 @@ function getStyles(c: Colors) {
     fab: {
       position: 'absolute', bottom: 24, right: 20,
       width: 56, height: 56, borderRadius: 28,
-      backgroundColor: '#1A73E8', alignItems: 'center', justifyContent: 'center',
-      shadowColor: '#1A73E8', shadowOpacity: 0.5, shadowRadius: 10, elevation: 8,
+      backgroundColor: accent, alignItems: 'center', justifyContent: 'center',
+      shadowColor: accent, shadowOpacity: 0.5, shadowRadius: 10, elevation: 8,
     },
     fabText: { fontSize: 28, color: '#FFFFFF', lineHeight: 34, fontWeight: '300' },
     fabModalWrap: { flex: 1, justifyContent: 'flex-end' },
@@ -845,11 +847,11 @@ function getStyles(c: Colors) {
     medTimeInputRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     medTimeInputLabel: { fontSize: 16 },
     medTimeHMInput: {
-      width: 52, borderWidth: 1.5, borderColor: '#1A73E8', borderRadius: 10,
+      width: 52, borderWidth: 1.5, borderColor: accent, borderRadius: 10,
       paddingVertical: 10, fontSize: 18, color: '#1E40AF', backgroundColor: '#EFF6FF',
       fontWeight: '700', textAlign: 'center',
     },
-    medTimeSep: { fontSize: 20, fontWeight: '800', color: '#1A73E8' },
+    medTimeSep: { fontSize: 20, fontWeight: '800', color: accent },
     medTimeRow: { flexDirection: 'row', gap: 8 },
     medTimeBtn: { flex: 1, paddingVertical: 9, borderRadius: 10, backgroundColor: '#F3F4F6', alignItems: 'center' },
     medTimeBtnActive: { backgroundColor: '#D1FAE5' },
@@ -876,7 +878,7 @@ function getStyles(c: Colors) {
       shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 20, elevation: 12,
     },
     annualHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-    annualArrow:  { fontSize: 26, color: '#1A73E8', paddingHorizontal: 8 },
+    annualArrow:  { fontSize: 26, color: accent, paddingHorizontal: 8 },
     annualTitle:  { fontSize: 16, fontWeight: '800', color: c.text, textAlign: 'center', flex: 1 },
     annualGrid:   { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
     annualStatCard: {
@@ -888,9 +890,9 @@ function getStyles(c: Colors) {
     annualSubTitle:  { fontSize: 13, fontWeight: '700', color: c.textSub, marginTop: 4 },
     barChartWrap: { flexDirection: 'row', alignItems: 'flex-end', height: 110, gap: 2 },
     barCol:       { flex: 1, alignItems: 'center', gap: 2 },
-    barCount:     { fontSize: 8, color: '#1A73E8', fontWeight: '700' },
+    barCount:     { fontSize: 8, color: accent, fontWeight: '700' },
     barTrack:     { flex: 1, width: '80%', justifyContent: 'flex-end' },
-    barFill:      { backgroundColor: '#1A73E8', borderRadius: 3, width: '100%' },
+    barFill:      { backgroundColor: accent, borderRadius: 3, width: '100%' },
     barMonth:     { fontSize: 8, color: c.textFaint, fontWeight: '600' },
     topTypesRow:  { flexDirection: 'row', gap: 8 },
     topTypeCard:  { flex: 1, borderRadius: 14, padding: 12, alignItems: 'center', gap: 4, position: 'relative' },

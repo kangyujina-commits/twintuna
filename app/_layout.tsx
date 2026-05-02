@@ -5,6 +5,7 @@ import Head from 'expo-router/head'
 import { PetProvider } from '../src/context/PetContext'
 import { DiaryProvider } from '../src/context/DiaryContext'
 import { ThemeProvider, useTheme } from '../src/context/ThemeContext'
+import { AppSettingsProvider } from '../src/context/AppSettingsContext'
 import { usePet } from '../src/context/PetContext'
 
 function AppShell() {
@@ -31,11 +32,13 @@ function AppShell() {
 export default function RootLayout() {
   return (
     <ThemeProvider>
-      <PetProvider>
-        <DiaryProvider>
-          <AppShell />
-        </DiaryProvider>
-      </PetProvider>
+      <AppSettingsProvider>
+        <PetProvider>
+          <DiaryProvider>
+            <AppShell />
+          </DiaryProvider>
+        </PetProvider>
+      </AppSettingsProvider>
     </ThemeProvider>
   )
 }

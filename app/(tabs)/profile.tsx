@@ -9,6 +9,7 @@ import { useRouter } from 'expo-router'
 import { usePet, PetProfile } from '../../src/context/PetContext'
 import { useDiary, VaccineItem, HospitalItem } from '../../src/context/DiaryContext'
 import { useTheme, Colors } from '../../src/context/ThemeContext'
+import { useAppSettings, ACCENT_COLORS, BANNER_HEIGHTS } from '../../src/context/AppSettingsContext'
 
 function confirmAlert(message: string, onConfirm: () => void) {
   if (Platform.OS === 'web') {
@@ -190,6 +191,7 @@ export default function ProfileScreen() {
     [records, activePet.id]
   )
 
+  const { settings: appSettings, updateSettings, resetSettings } = useAppSettings()
   const [editing, setEditing]               = useState(false)
   const [draft, setDraft]                   = useState<PetProfile>(activePet)
   const [showAddPet, setShowAddPet]         = useState(false)
@@ -197,6 +199,31 @@ export default function ProfileScreen() {
   const [editVax, setEditVax]               = useState<VaccineItem | null>(null)
   const [showAddHosp, setShowAddHosp]       = useState(false)
   const [editHosp, setEditHosp]             = useState<HospitalItem | null>(null)
+  const [showAppCustom, setShowAppCustom]   = useState(false)
+
+  async function pickHeroImage() {
+    if (Platform.OS === 'web') {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true, quality: 0.7, base64: true,
+      })
+      if (!result.canceled && result.assets[0]) {
+        const asset = result.assets[0]
+        const uri = asset.base64 ? `data:image/jpeg;base64,${asset.base64}` : asset.uri
+        updateSettings({ heroUri: uri })
+      }
+    } else {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync()
+      if (status !== 'granted') { Alert.alert('권한 필요', '사진 접근 권한이 필요합니다.'); return }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true, quality: 0.7,
+      })
+      if (!result.canceled && result.assets[0]) {
+        updateSettings({ heroUri: result.assets[0].uri })
+      }
+    }
+  }
 
   const petVaccines = vaccines.filter((v) => v.petId === activePetId)
   const today = new Date().toISOString().split('T')[0]
@@ -551,9 +578,91 @@ export default function ProfileScreen() {
             </TouchableOpacity>
           )}
 
+          {/* 앱 꾸미기 */}
+          {!editing && (
+            <TouchableOpacity style={styles.customizeBtn} onPress={() => setShowAppCustom(true)}>
+              <Text style={styles.customizeBtnText}>⚙️  앱 꾸미기</Text>
+            </TouchableOpacity>
+          )}
 
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* 앱 꾸미기 모달 */}
+      <Modal visible={showAppCustom} transparent animationType="slide" onRequestClose={() => setShowAppCustom(false)}>
+        <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={() => setShowAppCustom(false)} />
+        <View style={styles.customSheet}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>⚙️ 앱 꾸미기</Text>
+            <TouchableOpacity onPress={() => setShowAppCustom(false)}>
+              <Text style={styles.modalClose}>✕</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* 히어로 배너 이미지 */}
+          <Text style={styles.customSectionLabel}>🖼️ 홈 배경 이미지</Text>
+          <View style={styles.customHeroRow}>
+            <TouchableOpacity style={styles.customHeroPickBtn} onPress={pickHeroImage}>
+              <Text style={styles.customHeroPickText}>📁 사진 선택</Text>
+            </TouchableOpacity>
+            {appSettings.heroUri && (
+              <TouchableOpacity style={styles.customHeroResetBtn} onPress={() => updateSettings({ heroUri: null })}>
+                <Text style={styles.customHeroResetText}>기본으로</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+          {appSettings.heroUri && (
+            <Image source={{ uri: appSettings.heroUri }} style={styles.customHeroPreview} resizeMode="cover" />
+          )}
+
+          {/* 배너 높이 */}
+          <Text style={styles.customSectionLabel}>📐 배너 높이</Text>
+          <View style={styles.customChipRow}>
+            {BANNER_HEIGHTS.map((h) => (
+              <TouchableOpacity
+                key={h.value}
+                style={[styles.customChip, appSettings.bannerHeight === h.value && styles.customChipActive]}
+                onPress={() => updateSettings({ bannerHeight: h.value })}
+              >
+                <Text style={[styles.customChipText, appSettings.bannerHeight === h.value && styles.customChipTextActive]}>
+                  {h.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {/* 포인트 컬러 */}
+          <Text style={styles.customSectionLabel}>🎨 포인트 컬러</Text>
+          <View style={styles.customColorRow}>
+            {ACCENT_COLORS.map((col) => (
+              <TouchableOpacity
+                key={col.value}
+                style={[styles.colorDot, { backgroundColor: col.value },
+                  appSettings.accentColor === col.value && styles.colorDotActive]}
+                onPress={() => updateSettings({ accentColor: col.value })}
+              >
+                {appSettings.accentColor === col.value && (
+                  <Text style={styles.colorDotCheck}>✓</Text>
+                )}
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {/* 초기화 */}
+          <TouchableOpacity style={styles.customResetAll} onPress={() => {
+            if (Platform.OS === 'web') {
+              if (window.confirm('모든 꾸미기 설정을 초기화할까요?')) resetSettings()
+            } else {
+              Alert.alert('초기화', '모든 꾸미기 설정을 초기화할까요?', [
+                { text: '취소', style: 'cancel' },
+                { text: '초기화', style: 'destructive', onPress: resetSettings },
+              ])
+            }
+          }}>
+            <Text style={styles.customResetAllText}>🔄 전체 초기화</Text>
+          </TouchableOpacity>
+        </View>
+      </Modal>
 
       <AddPetModal
         visible={showAddPet}
@@ -836,5 +945,51 @@ function getStyles(c: Colors) {
     modalClose: { fontSize: 18, color: c.textFaint, padding: 4 },
     inputGroup: { gap: 6 },
     inputLabel: { fontSize: 12, fontWeight: '600', color: c.textMuted },
+    // 앱 꾸미기 버튼
+    customizeBtn: {
+      backgroundColor: '#EFF6FF', borderRadius: 14, padding: 16,
+      alignItems: 'center', marginTop: 4,
+      borderWidth: 1.5, borderColor: '#BFDBFE',
+    },
+    customizeBtnText: { fontSize: 15, fontWeight: '700', color: '#1A73E8' },
+    // 앱 꾸미기 모달
+    customSheet: {
+      backgroundColor: c.card, borderTopLeftRadius: 24, borderTopRightRadius: 24,
+      padding: 24, gap: 14,
+      shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 20, elevation: 10,
+    },
+    customSectionLabel: { fontSize: 13, fontWeight: '700', color: c.textSub, marginTop: 4 },
+    customHeroRow: { flexDirection: 'row', gap: 10 },
+    customHeroPickBtn: {
+      flex: 1, backgroundColor: '#1A73E8', borderRadius: 12,
+      paddingVertical: 12, alignItems: 'center',
+    },
+    customHeroPickText: { fontSize: 14, fontWeight: '700', color: '#FFF' },
+    customHeroResetBtn: {
+      paddingHorizontal: 16, paddingVertical: 12, borderRadius: 12,
+      backgroundColor: c.chip, alignItems: 'center',
+    },
+    customHeroResetText: { fontSize: 13, fontWeight: '600', color: c.textMuted },
+    customHeroPreview: { width: '100%', height: 100, borderRadius: 12 },
+    customChipRow: { flexDirection: 'row', gap: 10 },
+    customChip: {
+      flex: 1, paddingVertical: 10, borderRadius: 12, alignItems: 'center',
+      backgroundColor: c.chip, borderWidth: 1.5, borderColor: 'transparent',
+    },
+    customChipActive: { backgroundColor: '#EFF6FF', borderColor: '#1A73E8' },
+    customChipText: { fontSize: 13, fontWeight: '600', color: c.textMuted },
+    customChipTextActive: { color: '#1A73E8' },
+    customColorRow: { flexDirection: 'row', gap: 12, flexWrap: 'wrap' },
+    colorDot: {
+      width: 36, height: 36, borderRadius: 18,
+      alignItems: 'center', justifyContent: 'center',
+    },
+    colorDotActive: { borderWidth: 3, borderColor: '#FFF', shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 4, elevation: 4 },
+    colorDotCheck: { color: '#FFF', fontSize: 16, fontWeight: '800' },
+    customResetAll: {
+      padding: 14, borderRadius: 12, alignItems: 'center',
+      borderWidth: 1, borderColor: c.border, marginTop: 4,
+    },
+    customResetAllText: { fontSize: 13, fontWeight: '600', color: c.textMuted },
   })
 }
