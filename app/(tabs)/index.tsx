@@ -176,10 +176,12 @@ export default function HomeScreen() {
                   {pets.map((p: PetProfile) => (
                     <TouchableOpacity
                       key={p.id}
-                      style={[styles.switcherChip, p.id === activePetId && styles.switcherChipActive]}
+                      style={styles.switcherChip}
                       onPress={() => setActivePetId(p.id)}
                     >
-                      <Text style={styles.switcherEmoji}>{p.species === '고양이' ? '🐱' : '🐶'}</Text>
+                      <View style={[styles.switcherEmojiCircle, p.id === activePetId && styles.switcherEmojiCircleActive]}>
+                        <Text style={styles.switcherEmoji}>{p.species === '고양이' ? '🐱' : '🐶'}</Text>
+                      </View>
                       <Text style={[styles.switcherName, p.id === activePetId && styles.switcherNameActive]}>
                         {p.name}
                       </Text>
@@ -724,16 +726,23 @@ function getStyles(c: Colors, bannerHeight = 220, accent = '#1A73E8') {
     emptyCard: { backgroundColor: c.chip, borderRadius: 12, padding: 18, alignItems: 'center', marginHorizontal: 16 },
     emptyText: { color: c.textFaint, fontSize: 13 },
     switcherScroll: { marginBottom: 4 },
-    switcherRow: { flexDirection: 'row', gap: 8, paddingVertical: 2 },
+    switcherRow: { flexDirection: 'row', gap: 12, paddingVertical: 2 },
     switcherChip: {
-      flexDirection: 'row', alignItems: 'center', gap: 6,
-      paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
-      backgroundColor: c.chip, borderWidth: 1.5, borderColor: 'transparent',
+      width: 60, alignItems: 'center', gap: 5,
     },
-    switcherChipActive: { backgroundColor: '#EFF6FF', borderColor: accent },
-    switcherEmoji: { fontSize: 16 },
-    switcherName: { fontSize: 13, fontWeight: '600', color: c.textMuted },
-    switcherNameActive: { color: accent },
+    switcherEmojiCircle: {
+      width: 44, height: 44, borderRadius: 22,
+      backgroundColor: 'rgba(255,255,255,0.2)',
+      alignItems: 'center', justifyContent: 'center',
+      borderWidth: 2, borderColor: 'transparent',
+    },
+    switcherEmojiCircleActive: {
+      backgroundColor: 'rgba(255,255,255,0.95)',
+      borderColor: accent,
+    },
+    switcherEmoji: { fontSize: 22 },
+    switcherName: { fontSize: 11, fontWeight: '700', color: 'rgba(255,255,255,0.8)', textAlign: 'center' },
+    switcherNameActive: { color: '#FFF' },
     sectionRow: { flexDirection: 'row', alignItems: 'center', marginTop: 12, marginBottom: 6, paddingHorizontal: 16 },
     sectionAddBtn: { marginLeft: 'auto', backgroundColor: '#EFF6FF', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 },
     sectionAddText: { fontSize: 12, fontWeight: '700', color: accent },

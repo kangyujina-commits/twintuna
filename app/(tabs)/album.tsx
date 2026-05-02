@@ -215,10 +215,12 @@ export default function AlbumScreen() {
             {pets.map((p: PetProfile) => (
               <TouchableOpacity
                 key={p.id}
-                style={[styles.switcherChip, p.id === activePetId && styles.switcherChipActive]}
+                style={styles.switcherChip}
                 onPress={() => setActivePetId(p.id)}
               >
-                <Text style={styles.switcherEmoji}>{p.species === '고양이' ? '🐱' : '🐶'}</Text>
+                <View style={[styles.switcherEmojiCircle, p.id === activePetId && styles.switcherEmojiCircleActive]}>
+                  <Text style={styles.switcherEmoji}>{p.species === '고양이' ? '🐱' : '🐶'}</Text>
+                </View>
                 <Text style={[styles.switcherName, p.id === activePetId && styles.switcherNameActive]}>{p.name}</Text>
               </TouchableOpacity>
             ))}
@@ -417,15 +419,17 @@ function getStyles(c: Colors) {
   return StyleSheet.create({
     safe: { flex: 1, backgroundColor: c.bg },
     switcherScroll: { paddingHorizontal: 12, paddingTop: 8 },
-    switcherRow: { flexDirection: 'row', gap: 8, paddingVertical: 2 },
-    switcherChip: {
-      flexDirection: 'row', alignItems: 'center', gap: 6,
-      paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
-      backgroundColor: c.chip, borderWidth: 1.5, borderColor: 'transparent',
+    switcherRow: { flexDirection: 'row', gap: 12, paddingVertical: 4 },
+    switcherChip: { width: 60, alignItems: 'center', gap: 5 },
+    switcherEmojiCircle: {
+      width: 44, height: 44, borderRadius: 22,
+      backgroundColor: c.chip,
+      alignItems: 'center', justifyContent: 'center',
+      borderWidth: 2, borderColor: 'transparent',
     },
-    switcherChipActive: { backgroundColor: '#EFF6FF', borderColor: '#1A73E8' },
-    switcherEmoji: { fontSize: 15 },
-    switcherName: { fontSize: 13, fontWeight: '600', color: c.textMuted },
+    switcherEmojiCircleActive: { backgroundColor: '#EFF6FF', borderColor: '#1A73E8' },
+    switcherEmoji: { fontSize: 22 },
+    switcherName: { fontSize: 11, fontWeight: '700', color: c.textMuted, textAlign: 'center' },
     switcherNameActive: { color: '#1A73E8' },
     toolbar: {
       flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
