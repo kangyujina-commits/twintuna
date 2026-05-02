@@ -420,7 +420,7 @@ function getStyles(c: Colors) {
     safe: { flex: 1, backgroundColor: c.bg },
     switcherScroll: { paddingHorizontal: 12, paddingTop: 8 },
     switcherRow: { flexDirection: 'row', gap: 12, paddingVertical: 4 },
-    switcherChip: { width: 60, alignItems: 'center', gap: 5 },
+    switcherChip: { width: 72, alignItems: 'center', gap: 5 },
     switcherEmojiCircle: {
       width: 44, height: 44, borderRadius: 22,
       backgroundColor: c.chip,

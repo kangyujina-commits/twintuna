@@ -728,7 +728,7 @@ function getStyles(c: Colors, bannerHeight = 220, accent = '#1A73E8') {
     switcherScroll: { marginBottom: 4 },
     switcherRow: { flexDirection: 'row', gap: 12, paddingVertical: 2 },
     switcherChip: {
-      width: 60, alignItems: 'center', gap: 5,
+      width: 72, alignItems: 'center', gap: 5,
     },
     switcherEmojiCircle: {
       width: 44, height: 44, borderRadius: 22,

@@ -11,7 +11,7 @@ export interface AppSettings {
 
 const DEFAULTS: AppSettings = {
   heroUri:      null,
-  bannerHeight: 220,
+  bannerHeight: 160,
   accentColor:  '#1A73E8',
 }
 
@@ -71,7 +71,7 @@ export const ACCENT_COLORS = [
 ]
 
 export const BANNER_HEIGHTS = [
-  { label: '작게',  value: 140 },
-  { label: '보통',  value: 220 },
-  { label: '크게',  value: 300 },
+  { label: '작게',  value: 120 },
+  { label: '보통',  value: 160 },
+  { label: '크게',  value: 220 },
 ]
