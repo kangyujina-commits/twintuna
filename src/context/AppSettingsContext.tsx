@@ -33,7 +33,12 @@ export function AppSettingsProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     AsyncStorage.getItem(STORAGE_KEY).then((json) => {
-      if (json) setSettings({ ...DEFAULTS, ...JSON.parse(json) })
+      if (json) {
+        const saved = JSON.parse(json)
+        // 구버전 기본값(220) 마이그레이션 → 160으로 낮춤
+        if (saved.bannerHeight === 220) saved.bannerHeight = 160
+        setSettings({ ...DEFAULTS, ...saved })
+      }
       setLoaded(true)
     })
   }, [])

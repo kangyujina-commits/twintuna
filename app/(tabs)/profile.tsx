@@ -970,7 +970,7 @@ function getStyles(c: Colors) {
       backgroundColor: c.chip, alignItems: 'center',
     },
     customHeroResetText: { fontSize: 13, fontWeight: '600', color: c.textMuted },
-    customHeroPreview: { width: '100%', height: 100, borderRadius: 12 },
+    customHeroPreview: { width: '100%', height: 60, borderRadius: 10 },
     customChipRow: { flexDirection: 'row', gap: 10 },
     customChip: {
       flex: 1, paddingVertical: 10, borderRadius: 12, alignItems: 'center',
