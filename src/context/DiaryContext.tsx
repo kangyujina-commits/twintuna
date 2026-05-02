@@ -1,6 +1,29 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import { Platform } from 'react-native'
 import { RecordType } from '../types'
+
+/* 웹 전용: base64 이미지를 최대 600px / quality 0.4 로 압축 */
+async function compressBase64Web(uri: string): Promise<string> {
+  if (!uri.startsWith('data:')) return uri
+  return new Promise((resolve) => {
+    const img = new (window as any).Image() as HTMLImageElement
+    img.onload = () => {
+      const MAX = 600
+      let { width, height } = img
+      if (width > MAX || height > MAX) {
+        if (width > height) { height = Math.round(height * MAX / width); width = MAX }
+        else                { width  = Math.round(width  * MAX / height); height = MAX }
+      }
+      const canvas = document.createElement('canvas')
+      canvas.width = width; canvas.height = height
+      canvas.getContext('2d')!.drawImage(img, 0, 0, width, height)
+      resolve(canvas.toDataURL('image/jpeg', 0.4))
+    }
+    img.onerror = () => resolve(uri)
+    img.src = uri
+  })
+}
 
 export type MealType = '건식' | '습식' | '혼합' | '물'
 
@@ -115,8 +138,21 @@ export function DiaryProvider({ children }: { children: ReactNode }) {
       if (recJson)   setRecordsState(JSON.parse(recJson))
       if (vacJson)   setVaccinesState(JSON.parse(vacJson))
       if (hospJson)  setHospitalsState(JSON.parse(hospJson))
-      if (albumJson) setAlbumState(JSON.parse(albumJson))
       if (medJson)   setMedSchedules(JSON.parse(medJson))
+
+      // 웹: 기존 저장된 사진을 압축해서 재저장 (용량 절감 마이그레이션)
+      if (albumJson) {
+        const photos: AlbumPhoto[] = JSON.parse(albumJson)
+        if (Platform.OS === 'web' && photos.length > 0) {
+          const compressed = await Promise.all(
+            photos.map(async (p) => ({ ...p, photo_uri: await compressBase64Web(p.photo_uri) }))
+          )
+          setAlbumState(compressed)
+        } else {
+          setAlbumState(photos)
+        }
+      }
+
       setLoaded(true)
     }
     load()
@@ -139,7 +175,21 @@ export function DiaryProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!loaded) return
-    AsyncStorage.setItem(STORAGE_ALBUM_KEY, JSON.stringify(albumPhotos))
+    async function saveAlbum(photos: AlbumPhoto[]) {
+      let list = [...photos]
+      while (list.length > 0) {
+        try {
+          await AsyncStorage.setItem(STORAGE_ALBUM_KEY, JSON.stringify(list))
+          return // 저장 성공
+        } catch {
+          // 용량 초과 시 가장 오래된 사진 1장 제거 후 재시도
+          list = list.slice(0, list.length - 1)
+        }
+      }
+      // 전부 실패하면 빈 배열로 초기화
+      await AsyncStorage.setItem(STORAGE_ALBUM_KEY, JSON.stringify([]))
+    }
+    saveAlbum(albumPhotos)
   }, [albumPhotos, loaded])
 
   useEffect(() => {
